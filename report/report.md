@@ -35,9 +35,10 @@ strong daily seasonality identified in the exploratory analysis is real but
 largely redundant at a one-step horizon, decisive for a linear model that must
 encode it explicitly and nearly irrelevant to a network conditioned on recent
 history. Errors concentrate almost entirely at the daily peak, and the worst
-window in the busiest area was the pre-Christmas shopping Saturday, a traffic
-level absent from the training period — a failure that is calendar-driven and
-therefore invisible to any univariate model.
+window in every area was the midday-to-evening peak; on the busiest area this was
+the Friday-to-Saturday transition, where traffic rises 48% between consecutive
+days and no model receives a day-of-week input — a failure traceable to the
+experimental design rather than to any architecture.
 
 ---
 
@@ -608,12 +609,13 @@ The strongest sustained departure is the whole Christmas Day afternoon.
 > transform that makes this series stationary, which is a direct argument for
 > SARIMA(p,d,q)(0,1,0)[144] rather than an arbitrary order — the differencing is
 > chosen by test, and the PACF then bounds `p` and `q`. Separately, the anomaly
-> analysis identifies a genuine limitation of the experimental design: holiday
-> behaviour is a large effect that no univariate model can anticipate, and the
-> training period contains no comparable pre-Christmas period. The test week
-> (16–22 December) precedes the worst of it, but the models are being asked to
-> forecast a period whose calendar context is not represented in their training
-> data.
+> analysis identifies a genuine limitation of the experimental design: the largest
+> departures from ordinary behaviour are calendar-driven, and no univariate model
+> can anticipate them. The test week (16–22 December) sits *before* the severe
+> holiday anomalies — Christmas Day and New Year fall outside it — so the
+> evaluation is not dominated by them. What the test week does contain is the
+> ordinary weekly cycle, which a lag-144 seasonal term cannot represent; Section
+> 6.4 shows this is where the models actually fail.
 
 ---
 
@@ -1120,9 +1122,9 @@ At this scale all three models track the diurnal cycle closely — every R² is
 between 0.981 and 0.993 — which is precisely why the plots must be read through
 the residual panels rather than the level series. The residuals are small and
 symmetric overnight and expand sharply around the daily peak, and they are
-visibly largest on Saturday 21 and Sunday 22 December, the pre-Christmas weekend,
-when square 5161 reaches roughly 5,000 activity units against a weekday peak near
-3,500.
+visibly largest on the Saturday and Sunday, when square 5161 peaks at 5,238 and
+5,496 activity units against weekday peaks of 3,057 to 3,877 — the weekend uplift
+identified in Section 4.2.
 
 The `RMSE ÷ MAE` column quantifies this: 1.44 to 1.58 for the three models,
 against 1.83 for seasonal naive on squares 5161 and 5259. A ratio meaningfully
@@ -1181,9 +1183,12 @@ fixed: a differently loaded machine stops at a different epoch and returns
 different numbers. The budget was necessary to make the search affordable at all
 on this hardware, and epoch-matched comparison was used wherever an architectural
 question was at stake (Section 6.1). But it is a genuine methodological weakness
-rather than an implementation detail, and it is why the final predictions
-themselves are written to `results/predictions_square_*.csv` — those files, not
-the seed, are what pin the results in this report.
+rather than an implementation detail. The pipeline was therefore changed to write
+the raw test-week predictions to `results/predictions_square_*.csv`, so that
+figures and metrics can be regenerated without retraining. That change was made
+*after* the evaluation reported here, so it does not retrospectively pin these
+numbers; it removes the gap for any subsequent run. The reported figures and
+tables in `results/` are the archival record for this run.
 
 ### 6.4 Failure analysis
 
@@ -1220,29 +1225,46 @@ which is itself the finding: the difficulty is a property of the peak, not of an
 one architecture.
 
 ![](figures/failure_window_sq5161.png)
-*Figure 12. Square 5161, the worst window (shaded): Saturday 21 December, the highest-traffic day in the entire two-month record. Residuals below.*
+*Figure 12. Square 5161, the worst window (shaded): Saturday 21 December, 13:10–19:00 — the highest-activity period of the test week, following a 48% jump from Friday's peak. Residuals below.*
 
-Square 5161's worst window is the most revealing, because it is not an arbitrary
-bad afternoon. **Saturday 21 December is the pre-Christmas shopping Saturday, and
-it carries the highest traffic of the whole two-month record** — roughly 5,200
-activity units against an ordinary weekday peak near 3,500. Section 4.4 had
-flagged exactly this risk in advance: the training period, which ends on 8
-December, contains no comparable pre-Christmas period, so the models are being
-asked to extrapolate to a level they have never observed.
+Square 5161's worst window is the most revealing, and the reason is more specific
+than "the models struggle at Christmas". Within the test week, daily peaks run
+3,057, 3,877, 3,877, 3,258 and 3,530 from Monday to Friday, then jump to **5,238
+on Saturday and 5,496 on Sunday**. Saturday afternoon is simply the
+highest-activity period of the week in an area whose weekend traffic is 1.38× its
+weekday level (Section 4.2), and since error scales with level, that is where the
+worst window has to fall.
+
+It is worth being precise about what this is *not*, because the obvious
+interpretation is available and wrong. This is **not** extrapolation beyond
+anything the models have seen: the training period contains a daily peak of 8,044
+(Saturday 2 November) and Saturdays at 6,348 and 6,153 in late November and early
+December, against a training median daily peak of 3,815. Saturday 21 December, at
+5,238, is a *lower* Saturday than several in the training data. The failure is
+therefore not a novel traffic level, and any claim that the pre-Christmas period
+pushed traffic beyond the training range would be unsupported by this data — the
+STL trend in Section 4.4 in fact *falls* after 21 December.
+
+What actually breaks is the **day-of-week transition**. Friday 20 December peaks at
+3,530 and Saturday 21 December at 5,238, a 48% jump between consecutive days. That
+single fact explains the bias pattern below.
 
 The three models fail differently, and the differences are diagnostic rather than
 incidental:
 
 * **SARIMA under-predicts systematically**, with a window bias of **−207** — it
-  spends the afternoon below the observed series. Its residual panel also
-  oscillates far more than the others. Both are consequences of its structure: the
-  forecast is anchored to the same time on the previous day through the seasonal
-  difference, and the previous day was an ordinary Friday. A model whose seasonal
-  term says "yesterday" cannot represent a day that is unlike yesterday.
+  spends the afternoon below the observed series. This follows directly from its
+  structure. Its seasonal difference at lag 144 anchors the forecast to the same
+  time *yesterday*, and yesterday was a Friday peaking 48% lower. A model whose
+  only seasonal term is "one day ago" has no representation of day-of-week at all,
+  so it must under-predict every Friday-to-Saturday transition in this area and
+  over-predict every Sunday-to-Monday one. The weekly cycle that Section 4.3 found
+  in the periodogram is precisely the structure this model omits.
 * **The LSTM over-predicts**, with a bias of **+112**, and the residual panel
   shows why: it tracks the ascent adequately but stays high as traffic falls after
-  17:00, overshooting the descent by up to about 500 units. It learned the shape of
-  a typical peak and applied it to an atypical one.
+  17:00, overshooting the descent by up to about 500 units. Having compressed a
+  144-step window into a fixed hidden state, it reproduces the shape of a typical
+  peak and is late to follow an unusually steep decline.
 * **The TCN is nearly unbiased** at **+15**, with the lowest window error (148.2).
   Its errors in this window are largely variance rather than a systematic
   misreading of the day.
@@ -1255,11 +1277,13 @@ whose selected configuration cannot even see a full day, has less periodic prior
 to be wrong about, and relies more on the immediately preceding observations —
 which on an anomalous day are the more reliable evidence.
 
-**A limitation this analysis exposes.** Every model here is univariate: its only
-input is the area's own traffic history. A calendar feature marking the
-pre-Christmas period, or the shopping Saturday specifically, is exactly the
-information needed for the largest failure in the evaluation, and none of the
-models has access to it. This is a limitation of the experimental design rather
+**A limitation this analysis exposes.** Every model here is univariate and none
+receives a **day-of-week** input. Section 4.3 found a weekly spectral peak and
+Section 4.2 measured weekend/weekday ratios ranging from 0.43 to 1.38 across areas,
+so day-of-week is a documented, substantial effect that the models can only infer
+indirectly — and SARIMA, whose seasonal term is fixed at one day, cannot infer it
+at all. A single categorical feature is the information needed for the largest
+failure in this evaluation. This is a limitation of the experimental design rather
 than of the architectures, and Section 7 records it as the most promising
 extension.
 
@@ -1348,10 +1372,13 @@ recent history.
 **Errors are concentrated where traffic is highest.** All three models were
 equivalent overnight and separated only at the daily peak, where the TCN's
 advantage was earned entirely. The worst six-hour window in every area was the
-midday-to-evening peak, at 1.8 to 2.8 times the weekly mean error, and on the
-busiest area it was Saturday 21 December — the pre-Christmas shopping Saturday and
-the highest-traffic day in the entire record, a level the training period never
-contained.
+midday-to-evening peak, at 1.8 to 2.8 times the weekly mean error. On the busiest
+area it was Saturday 21 December — not because that day was unprecedented (the
+training period contains higher Saturdays, up to a peak of 8,044 against
+Saturday's 5,238) but because traffic jumped 48% from Friday to Saturday, and
+none of the models receives a day-of-week input. SARIMA, whose only seasonal term
+is a one-day difference, under-predicted the transition by 207 activity units on
+average.
 
 Returning to the research question: the models differ substantially, the
 convolutional model is preferable to the recurrent one on accuracy, cost *and*
@@ -1374,9 +1401,10 @@ Stated in order of how much they constrain the conclusions.
 2. **Wall-clock budgets make the pipeline non-reproducible in the strict sense.**
    Training was bounded by time as well as epochs, so a differently loaded machine
    stops at a different epoch. One final run, the LSTM on square 5161, was
-   truncated — and it is the run behind the LSTM's weakest result. Predictions are
-   archived to `results/predictions_square_*.csv` because the seed alone does not
-   pin the numbers.
+   truncated — and it is the run behind the LSTM's weakest result. Fixing the seed
+   is not sufficient here; prediction archiving was added to close this gap for
+   future runs, but for the run reported here the committed tables and figures are
+   the record.
 3. **Timing measurements are contaminated by machine load.** The same LSTM
    configuration cost 10.5 s per epoch during tuning and 88 s per epoch during the
    final run. Only the order-of-magnitude comparisons and the relative
@@ -1405,11 +1433,13 @@ Stated in order of how much they constrain the conclusions.
 Ordered by expected return relative to effort, and each one motivated by a
 specific finding above rather than by generic ambition.
 
-**1. Add calendar features.** The single highest-value extension, because it
-targets the largest observed failure directly. Day-of-week, hour-of-day and an
-Italian public-holiday and pre-Christmas indicator would give the models the
-information they demonstrably lacked on 21 December. Cheap to implement and
-testable within the existing harness.
+**1. Add a day-of-week feature.** The single highest-value extension, because it
+targets the largest observed failure directly: the 48% Friday-to-Saturday
+transition that SARIMA under-predicted by 207 units and the LSTM over-shot.
+Day-of-week, hour-of-day and an Italian public-holiday indicator are one
+categorical encoding each, cheap to implement and testable within the existing
+harness. The EDA already justifies them — a weekly spectral peak in Section 4.3
+and weekend ratios from 0.43 to 1.38 in Section 4.2.
 
 **2. Repeat the key comparisons across seeds.** Five seeds per configuration would
 convert the LSTM-versus-TCN comparison from suggestive to statistically supported,

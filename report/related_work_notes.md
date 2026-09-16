@@ -1010,6 +1010,78 @@ Target ~700–900 words. Five themes, in this order. Supporting references in br
 
 ---
 
+# Addendum — two references added after the first pass
+
+Both were verified directly against the publisher record, with the quoted text read
+from the paper itself. They are numbered [28] and [29] in the report.
+
+### [28] Zhang, Gong, Liu & Chen (2023) — a TCN already applied to the Milan data
+
+Z. Zhang, S. Gong, Z. Liu, and D. Chen, "A novel hybrid framework based on temporal
+convolution network and transformer for network traffic prediction," *PLOS ONE*,
+vol. 18, no. 9, art. no. e0288935, Sep. 2023, doi: 10.1371/journal.pone.0288935.
+
+**Verified: yes.** Four authors (all School of Information Engineering, China
+University of Geosciences, Beijing), volume 18, issue 9, article e0288935, published
+8 September 2023, confirmed from the PLOS article page, the PLOS printable PDF, and
+PubMed 37682829 / PMC10490908. Abstract and methods read.
+
+**Why it had to be added.** Without it the report's Related Work implies no TCN has
+been applied to this dataset, which is false and is the kind of omission an examiner
+would treat as an inadequate literature review.
+
+**Key numbers, with the qualifications that must travel with them.**
+- Reported MAE reductions of **51.36%, 53.10% and 38.24%** against CSTCN, an LSTM
+  and a Transformer; MSE reductions of 65.16%, 64.97% and 60.26%.
+- The model is **spatio-temporal**, taking 16 × 100 × 100 input tensors — not a
+  univariate single-cell model — and has **3.19 M parameters** against the 5,601 of
+  the plain TCN used in this report.
+- **Every baseline is another neural network.** No naive, persistence,
+  seasonal-naive or classical reference appears. The percentages therefore say the
+  hybrid beats other deep models; they say nothing about beating "repeat the last
+  value". This is the single most important qualification.
+- Confirms the dataset via doi:10.1038/sdata.2015.55 in its data-availability
+  statement, so it is unambiguously the same Milan release.
+
+### [29] Zeng, Chen, Zhang & Xu (2023) — a naive baseline beating every Transformer
+
+A. Zeng, M. Chen, L. Zhang, and Q. Xu, "Are Transformers effective for time series
+forecasting?," in *Proc. AAAI Conf. Artificial Intelligence*, vol. 37, no. 9, 2023,
+pp. 11121–11128, doi: 10.1609/aaai.v37i9.26317.
+
+**Verified: yes.** Four authors, volume 37, issue 9, pp. 11121–11128, confirmed from
+the AAAI OJS record, which also supplies the recommended citation string verbatim.
+The quoted sentence was read from the AAAI full text and cross-checked against
+arXiv:2205.13504v3.
+
+**Relevance.** The strongest external support for this report's central
+methodological argument: that omitting a naive baseline can invert conclusions.
+
+**Exact claim, and the nuance that must be reported with it.**
+- Verbatim: *"even though the naive Repeat method shows worse results when
+  predicting long-term seasonal data (e.g., Electricity and Traffic), it
+  surprisingly outperforms all Transformer-based methods on Exchange-Rate (around
+  45%)."*
+- "Closest Repeat" is defined as repeating the last value of the look-back window —
+  i.e. persistence.
+- **Do not quote the 45% without the seasonal caveat.** On their seasonal
+  benchmarks Repeat was *worse*. Their setting is long-horizon, where periodicity is
+  what the model must supply and persistence cannot; this report is one-step-ahead,
+  which is the opposite end. The horizon dependence is what makes the citation
+  apposite, and misquoting it as "naive beats deep learning" would be wrong.
+
+### A gap worth stating as a contribution
+
+Across every Milan-dataset study reviewed here — [2], [3], [4], [6] and [28] —
+**none reports a persistence or seasonal-naive baseline** for single-cell
+one-step-ahead Internet traffic. Comparisons are made against ARIMA, Holt-Winters,
+SVR, or other neural models. Consequently there is no published naive-baseline
+figure for this data to compare against, and the baselines in the report had to be
+computed rather than cited. This is stated in Section 2.5 as a gap and is why the
+persistence comparison is presented as a contribution rather than a routine check.
+
+---
+
 # Verification summary
 
 **Bibliographic metadata** (title, authors, venue, year, volume/issue/pages, DOI):

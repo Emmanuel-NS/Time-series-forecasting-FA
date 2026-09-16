@@ -199,6 +199,19 @@ the LSTM [12] as the matched recurrent comparator. Note also that convolution
 here operates over *time*, not over space as in [3], [5] and [15]: this is
 explicitly not a spatio-temporal model.
 
+A temporal convolutional network has been applied to this dataset before, and the
+difference in framing is worth stating so that the present contribution is not
+overstated. Zhang *et al.* [28] combine a TCN with an attention module and a
+sparse-self-attention Transformer (CSTCN-Transformer) on the Milan data, reporting
+MAE reductions of 51.4%, 53.1% and 38.2% against CSTCN, an LSTM and a Transformer
+respectively [28]. Three things separate that work from this one. It is
+spatio-temporal, taking 100 × 100 grid tensors as input rather than a single cell's
+history; it is a 3.19-million-parameter hybrid against the 5,601-parameter plain
+TCN used here; and — most importantly for the argument of Section 2.5 — **every one
+of its baselines is another neural network.** No naive or classical reference
+appears, so its percentages establish that the hybrid beats other deep models, not
+that any of them beats repeating the last observation.
+
 ### 2.5 Evaluation methodology and the case for strong baselines
 
 The metric choice rests on Hyndman and Koehler [16], who show that many
@@ -221,11 +234,31 @@ percent smaller MAE than NAIVE, ARIMA, LSTM, HW" — from which the ordering is 
 informative part: their Holt-Winters implementation outperformed their own LSTM,
 and ARIMA trailed it by only a few points.
 
+The most pointed evidence comes from Zeng *et al.* [29], who included a "Closest
+Repeat" baseline — literally repeating the last value of the input window — among
+five Transformer architectures across nine benchmarks, and found it "surprisingly
+outperforms all Transformer-based methods on Exchange-Rate (around 45%)" [29].
+The nuance matters and cuts in an interesting direction: on their *seasonal*
+long-horizon benchmarks, Electricity and Traffic, Repeat performed *worse* than the
+Transformers. Their setting is long-horizon, where periodic structure is what a
+model must supply and persistence cannot. This study operates at the opposite end —
+one step ahead on a strongly seasonal series — which is exactly where the naive
+method should be strongest, and Section 6.2 confirms it.
+
 Fairness requires stating the counter-argument. The M3 and M4 series are short and
 low-frequency, with on the order of a hundred observations each; the Milan cells
 provide thousands of high-frequency observations per series, conditions far more
 favourable to learned models. That is the dimension along which this study tests
 whether the [21] prior survives.
+
+**A gap in the literature on this dataset.** Across the work reviewed here, no
+study located on the Milan data reports a persistence or seasonal-naive baseline
+for single-cell one-step-ahead Internet traffic. Comparisons are made against
+ARIMA, Holt-Winters, or other neural models [2], [3], [4], [6], [28]. This means
+no published naive-baseline figure exists for this data to compare against, so the
+baselines in Section 6.2 had to be computed here — and it is why the persistence
+comparison is presented as a contribution of this report rather than as a routine
+check.
 
 Finally, two methodological tools and one limitation. STL [17] is used for
 decomposition because it allows the seasonal component to evolve, which matters
@@ -1326,6 +1359,22 @@ present result extends that claim to a seasonal real-valued forecasting task,
 which their benchmark suite did not include, though on a single dataset and with
 the single-seed limitation noted in Section 6.1.
 
+Two comparisons deserve explicit qualification so that this study's contribution is
+not overstated. Zhang *et al.* [28] already apply a TCN to this dataset and report
+larger improvements — 51.4% MAE reduction against an LSTM — but as a
+3.19-million-parameter spatio-temporal hybrid taking the full 100 × 100 grid as
+input, against neural baselines only. Their result and this one are not in
+competition: theirs shows what a large spatio-temporal hybrid adds over other deep
+models, while this one measures what a 5,601-parameter univariate model achieves
+against a baseline that no prior study on this data reports at all. The
+complementary finding here — that persistence beats a properly specified SARIMA
+and is within 15% of the best neural model — is only visible because the naive
+reference was computed. Zeng *et al.* [29] provide the closest external analogue:
+their "Repeat" baseline beat every Transformer on one benchmark by roughly 45%,
+while performing worse on their long-horizon *seasonal* benchmarks. The horizon
+dependence in both directions is consistent with the receptive-field result of
+Section 6.1.
+
 ---
 
 ## 7. Conclusion and Future Work
@@ -1648,22 +1697,31 @@ doi: 10.1214/aoms/1177703732.
 *Proc. 3rd Int. Conf. Learning Representations (ICLR)*, San Diego, CA, USA,
 May 2015. [Online]. Available: https://arxiv.org/abs/1412.6980
 
+[28] Z. Zhang, S. Gong, Z. Liu, and D. Chen, "A novel hybrid framework based on
+temporal convolution network and transformer for network traffic prediction,"
+*PLOS ONE*, vol. 18, no. 9, art. no. e0288935, Sep. 2023,
+doi: 10.1371/journal.pone.0288935.
+
+[29] A. Zeng, M. Chen, L. Zhang, and Q. Xu, "Are Transformers effective for time
+series forecasting?," in *Proc. AAAI Conf. Artificial Intelligence*, vol. 37,
+no. 9, 2023, pp. 11121–11128, doi: 10.1609/aaai.v37i9.26317.
+
 ### Software
 
-[28] C. R. Harris *et al.*, "Array programming with NumPy," *Nature*, vol. 585,
+[30] C. R. Harris *et al.*, "Array programming with NumPy," *Nature*, vol. 585,
 pp. 357–362, Sep. 2020, doi: 10.1038/s41586-020-2649-2.
 
-[29] S. Seabold and J. Perktold, "statsmodels: Econometric and statistical
+[31] S. Seabold and J. Perktold, "statsmodels: Econometric and statistical
 modeling with Python," in *Proc. 9th Python in Science Conf. (SciPy)*, Austin, TX,
 USA, 2010, pp. 92–96, doi: 10.25080/Majora-92bf1922-011.
 
-[30] A. Paszke *et al.*, "PyTorch: An imperative style, high-performance deep
+[32] A. Paszke *et al.*, "PyTorch: An imperative style, high-performance deep
 learning library," in *Advances in Neural Information Processing Systems 32
 (NeurIPS 2019)*, Vancouver, BC, Canada, Dec. 2019. [Online]. Available:
 https://arxiv.org/abs/1912.01703
 
 ### Project artefacts
 
-[31] Source code repository: *[insert GitHub URL before submission]*
+[33] Source code repository: *[insert GitHub URL before submission]*
 
-[32] Video presentation: *[insert video URL before submission]*
+[34] Video presentation: *[insert video URL before submission]*

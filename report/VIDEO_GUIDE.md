@@ -542,6 +542,19 @@ a one-step horizon those observations already imply where in the daily cycle you
 are. The EDA correctly identified the structure; my initial inference that every
 model therefore *needs* to reach lag 144 was the part the experiment refuted.
 
+**"Hasn't a TCN already been applied to this dataset? What's new here?"**
+Yes, and I cite it — Zhang et al. in PLOS ONE 2023 combine a TCN with an attention
+module and a Transformer on the Milan data and report a 51% MAE reduction against
+an LSTM. Two things separate that from mine and I say so in the report. Theirs is a
+3.19-million-parameter spatio-temporal hybrid taking the full 100×100 grid as
+input; mine is a 5,601-parameter univariate model on one cell's own history. More
+importantly, **every baseline in that paper is another neural network** — so its
+percentages show the hybrid beating other deep models, not beating "repeat the last
+value". Across all the Milan work I reviewed, I found no study reporting a
+persistence or seasonal-naive baseline for single-cell one-step-ahead traffic. That
+is the gap my report fills, and it is why my headline finding is a comparison
+nobody had published for this data.
+
 **"How do you know your timezone and grid orientation are right?"**
 I verified both rather than assuming. The city-wide mean profile bottoms out at
 05:00 and peaks at 13:00 local time, and weekend activity is 0.83 of weekday — both

@@ -1,0 +1,38 @@
+{
+  "tuning_square": 5161,
+  "sarima": {
+    "order": [
+      1,
+      0,
+      1
+    ],
+    "seasonal_period": 144,
+    "trend": "n",
+    "val_MAE": 136.3332,
+    "experiment": 3,
+    "selection_note": "ARMA(1,1) on the seasonally differenced log1p series. Chosen on held-out MAE and parsimony: orders 3-8 span validation MAE 136.3-137.0 (a 0.5% spread) while AIC keeps improving and is minimised by ARMA(2,2), so the extra terms buy in-sample likelihood without out-of-sample gain."
+  },
+  "lstm": {
+    "lookback": 144,
+    "hidden_size": 64,
+    "num_layers": 1,
+    "dropout": 0.0,
+    "lr": 0.001,
+    "batch_size": 128,
+    "val_MAE": 107.2739,
+    "experiment": 3,
+    "selection_note": "Best validation MAE among the LSTM configurations that trained to convergence. Experiments 4-6 hit the 420 s tuning budget and are truncated rather than converged, so they are excluded from selection."
+  },
+  "tcn": {
+    "lookback": 144,
+    "channels": 16,
+    "levels": 4,
+    "kernel": 3,
+    "dropout": 0.1,
+    "batch_size": 256,
+    "receptive_field": 61,
+    "val_MAE": 103.1724,
+    "experiment": "receptive-field study #1",
+    "selection_note": "Chosen for parsimony, not for best validation MAE. Controlled study (equal epochs, early stopping disabled) gave RF 61: 103.17, RF 125: 109.61, RF 253: 104.55, RF 509: 102.47. The ordering is non-monotonic, bounding run-to-run variation at >= 5.06 MAE with a single seed per configuration; this configuration is within that bound of the best (102.47) and is the shallowest such, so the difference is not evidence of a real effect. Substantive finding: receptive field has no systematic effect on one-step-ahead accuracy over this range."
+  }
+}

@@ -1,0 +1,23 @@
+# Core numerical / data stack
+numpy>=1.26
+pandas>=2.1
+pyarrow>=15.0
+
+# Statistics and classical time-series models
+scipy>=1.11
+statsmodels>=0.14
+
+# Machine learning utilities (scaling, grid search helpers, metrics)
+scikit-learn>=1.4
+
+# Neural sequence models (CPU-only build is sufficient; see README)
+torch>=2.2
+
+# Plotting
+matplotlib>=3.8
+
+# Process/memory instrumentation for the memory-management experiments
+psutil>=5.9
+
+# Progress reporting during the long ingestion job
+tqdm>=4.66

@@ -1,0 +1,6 @@
+model,train_seconds_mean,train_seconds_min,train_seconds_max,inference_seconds_week,inference_ms_per_step,n_parameters,best_epoch
+Persistence,0.0,0.0,0.0,0.0652,0.0647,0,
+Seasonal naive,0.0,0.0,0.0,0.0659,0.0654,0,
+SARIMA,1.1623,0.743,1.666,0.115,0.1141,3,
+LSTM,1004.555,266.703,1929.035,0.6871,0.6817,17217,27.0
+TCN,644.4847,193.046,1371.378,0.3706,0.3676,5601,26.3333

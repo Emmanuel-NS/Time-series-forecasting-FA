@@ -1,0 +1,11 @@
+quantity,value
+Raw dataset on disk (62 tab-separated day files),19.38 GB
+Raw rows parsed (square x interval x country code),"319,896,289"
+Rows after summing out country code,"89,280,000"
+Row-count reduction factor,3.6x
+"Compact store, float32 dense matrix",341 MB
+Same store as float64,681 MB
+Same store retaining all 5 activity types (float32),1703 MB
+Disk footprint reduction (raw -> store),58x
+Peak disk needed by the pipeline (store + 1 raw day),721 MB
+Resident memory to read one area's full series,35 KB

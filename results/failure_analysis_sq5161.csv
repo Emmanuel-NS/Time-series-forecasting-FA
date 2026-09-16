@@ -1,0 +1,4 @@
+model,window_start,window_end,window_MAE,week_MAE,ratio,window_bias
+SARIMA,Sat 21 Dec 13:10,Sat 21 Dec 19:00,303.997,108.035,2.814,-206.969
+LSTM,Sat 21 Dec 13:10,Sat 21 Dec 19:00,201.03,93.118,2.159,112.473
+TCN,Sat 21 Dec 13:10,Sat 21 Dec 19:00,148.229,78.493,1.888,15.403

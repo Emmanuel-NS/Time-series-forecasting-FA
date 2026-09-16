@@ -1,0 +1,11 @@
+{
+  "platform": "Windows-10-10.0.19045-SP0",
+  "processor": "Intel64 Family 6 Model 78 Stepping 3, GenuineIntel",
+  "python": "3.12.3",
+  "physical_cores": 2,
+  "logical_cores": 4,
+  "cpu_max_mhz": 2496.0,
+  "total_ram_gb": 7.88,
+  "torch_threads": 2,
+  "measurement_protocol": "Training time is wall-clock for a complete fit including early stopping, measured with time.perf_counter. Inference time is the median of 5 repeated one-step-ahead passes over all 1008 slots of the test week. Values are averaged over the three study areas. PyTorch is pinned to 2 threads to match the 2 physical cores and keep repeats comparable."
+}

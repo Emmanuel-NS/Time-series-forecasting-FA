@@ -1,0 +1,8 @@
+quantity,value
+Trend strength F_T (0-1),0.5193
+Daily seasonal strength F_S (0-1),0.9269
+"Var(observed), log scale",1.447
+Var(trend),0.0925
+Var(seasonal),1.2886
+Var(remainder),0.0984
+Remainder std as % of observed std,26.07

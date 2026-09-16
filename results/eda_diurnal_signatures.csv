@@ -1,0 +1,6 @@
+square,nearest_landmark,distance_km,mean,late_night_ratio,office_hours_ratio,night_over_office,weekend_over_weekday,weekday_peak_hour,weekend_peak_hour
+5161,Duomo (historic centre),0.29,1426.9781,0.3266,1.7925,0.1822,1.3843,14,16
+5059,Duomo (historic centre),0.24,1251.2158,0.4496,1.7062,0.2635,0.861,13,16
+5259,Duomo (historic centre),0.46,1174.4825,0.5527,1.6742,0.3301,0.4254,13,1
+4159,Bocconi University,0.39,274.8807,0.7223,1.4515,0.4976,0.587,12,16
+4556,Navigli nightlife district,0.37,512.396,1.3259,1.0319,1.285,1.1401,22,22

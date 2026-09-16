@@ -1,0 +1,6 @@
+square_id,row,col,latitude,longitude,nearest_landmark,distance_km,total_activity,share_of_city_%
+5161,51,60,45.4657,9.1931,Duomo (historic centre),0.29,12740060.346,0.2294
+5059,50,58,45.4636,9.1871,Duomo (historic centre),0.24,11170854.3724,0.2012
+5259,52,58,45.4678,9.1871,Duomo (historic centre),0.46,10485779.6007,0.1888
+5061,50,60,45.4636,9.1931,Duomo (historic centre),0.25,9584334.4606,0.1726
+5258,52,57,45.4678,9.1841,Duomo (historic centre),0.61,8707440.2202,0.1568

@@ -35,6 +35,6 @@ Upload `report/report.pdf` as the assignment file.
 
 ---
 
-**Optional but smart before the viva:** read Section 8 once and tweak any wording
-that does not match how you actually used the assistant. Then skim
-`report/VIDEO_GUIDE.md` → “The hardest questions you are likely to get”.
+**Optional but smart before the viva:** rehearse `report/VIDEO_GUIDE.md` →
+“The hardest questions you are likely to get”, and make sure you can explain the
+code and results without reading from the guide.

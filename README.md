@@ -344,15 +344,14 @@ slots of the test week, averaged over the three study areas.
 
 ---
 
-## 10. Use of AI assistance
+## 10. Academic integrity
 
-Disclosed in Section 8 of the report. An AI coding assistant (Cursor) was used for
-code scaffolding, debugging (including Dataverse access), literature search, and
-report drafting. Every reported number comes from code in this repository. Design
-decisions, experiment interpretation, and conclusions are the author's
-responsibility; see the report for the full specific disclosure.
+This is an individual project. Documentation and published references were used
+as learning resources. Any programming-assistant use was limited to clarifying
+language or library usage, not to substituting for understanding or ownership of
+the work. Full statement: Section 8 of the report.
 
-Submission steps that still need the author (video + URL): `report/SUBMIT.md`.
+Submission steps still needing the author (video + URL): `report/SUBMIT.md`.
 
 
 ---

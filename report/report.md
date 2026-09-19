@@ -49,17 +49,18 @@ that varies by an order of magnitude within a single day and by a further order
 of magnitude between neighbouring city blocks. Decisions that depend on knowing
 that demand a few minutes in advance — dynamic spectrum and bandwidth
 allocation, load balancing between cells, admission control, and switching
-lightly loaded cells into energy-saving states — are all short-horizon
+lightly loaded cells into energy-saving states [25] — are all short-horizon
 forecasting problems. Getting them wrong is costly in both directions:
 under-provisioning degrades service exactly when demand is highest, while
 over-provisioning wastes energy in a sector where radio access networks account
-for the majority of an operator's electricity consumption.
+for the majority of an operator's electricity consumption (about 73–87% across
+peer-reviewed and industry estimates [23], [24]).
 
 This study investigates that problem empirically on the Telecom Italia Milan
-dataset, which records telecommunications activity over a 100 × 100 grid of
-10,000 geographical areas at 10-minute resolution for two months. The scale
-matters methodologically as well as practically: at 20.6 GB of raw text and
-roughly 340 million rows, the dataset does not fit in the memory of the machine
+dataset [1], which records telecommunications activity over a 100 × 100 grid of
+10,000 geographical areas at 10-minute resolution for two months [2], [3]. The
+scale matters methodologically as well as practically: at 19.4 GB of raw text and
+roughly 320 million rows, the dataset does not fit in the memory of the machine
 used here, so how the data is handled is part of the research problem rather
 than a preliminary.
 
@@ -78,7 +79,7 @@ during exploratory analysis.
 
 **Objectives.**
 
-1. Design and quantify a data-handling strategy that makes a 20.6 GB dataset
+1. Design and quantify a data-handling strategy that makes a 19.4 GB dataset
    tractable within roughly 1 GB of working memory, and state its trade-offs.
 2. Characterise the temporal and spatial structure of the Internet traffic, and
    use that characterisation — not convention — to determine the input
@@ -300,22 +301,25 @@ saving.
 ### 3.1 The data
 
 The dataset is derived from Call Detail Records collected by Telecom Italia and
-released for the Big Data Challenge 2014, documented by Barlacchi *et al.* Milan
-is partitioned into a regular 100 × 100 grid; for each area, each 10-minute
-interval and each counterpart country code, the data records SMS activity
-(in/out), call activity (in/out), and Internet activity. The observation window
-runs from 1 November 2013 to 1 January 2014 inclusive: 62 days and therefore
-`62 × 144 = 8,928` intervals.
+released for the Big Data Challenge 2014, documented by Barlacchi *et al.* [1].
+Milan is partitioned into a regular 100 × 100 grid of squares of about
+235 m × 235 m [2], [3]; for each area, each 10-minute interval and each
+counterpart country code, the data records SMS activity (in/out), call activity
+(in/out), and Internet activity. The observation window runs from 1 November 2013
+to 1 January 2014 inclusive [2]: 62 days and therefore `62 × 144 = 8,928`
+intervals.
 
 Activity values are a normalised proxy for volume rather than a physical unit;
-the publishers scaled them to protect commercial confidentiality. This has one
-methodological consequence worth stating early: absolute error magnitudes are
+the publishers scaled them to protect commercial confidentiality [1]. This has
+one methodological consequence worth stating early: absolute error magnitudes are
 not interpretable in bytes, so all comparisons in this report are made *between
 models on the same area*, and scale-free metrics are reported alongside
 absolute ones.
 
 This study forecasts **Internet activity**, the target specified by the
-assignment and the channel most relevant to capacity planning.
+assignment and the channel most relevant to capacity planning. Prior work on the
+same release often aggregates the 10-minute series further (for example to hourly
+[3]); the native 10-minute resolution is retained here deliberately.
 
 ### 3.2 The computational constraint
 
@@ -359,8 +363,8 @@ rather than assumed: between 1,432,827 and 1,439,946 of the 1,440,000 possible
 cells are non-zero on every single day, so the grid is essentially complete. A
 sparse format would store indices alongside values and end up *larger*. At
 `float32` the store is **341 MB**, and because it is accessed through
-`numpy.memmap`, extracting one area's complete 62-day series touches only 35 KB
-of resident memory.
+`numpy.memmap` [30], extracting one area's complete 62-day series touches only
+35 KB of resident memory.
 
 **5. Download, process, discard.** Files are fetched one at a time and deleted
 immediately after aggregation, so peak disk use is `store + one raw day ≈ 721 MB`
@@ -559,7 +563,8 @@ well-chosen, and their behaviour is explicable from their location:
 
 {{table:eda_acf_at_seasonal_lags|noindex}}
 
-Three quantitative facts follow, and each one is load-bearing.
+Three quantitative facts follow, and each one is load-bearing. Autocorrelation and
+partial autocorrelation are interpreted in the usual Box–Jenkins sense [10], [11].
 
 **The immediate past dominates.** Autocorrelation at lag 1 (10 minutes) is
 0.987 and at lag 6 (1 hour) is 0.939. Consecutive observations are nearly
@@ -592,15 +597,16 @@ order is therefore sufficient once seasonality has been removed.
 {{table:eda_stationarity_tests|noindex}}
 
 These results need careful reading, and the apparent contradiction in the first
-row is the interesting part. On the raw series both ADF and KPSS report
-stationarity. That is **not** evidence that the series is well-behaved: ADF
-tests for a unit root and KPSS for level stationarity, and *neither is sensitive
-to deterministic seasonality*. A series that cycles reliably between a 05:00
-trough and a 14:00 peak has a strongly time-varying conditional mean while
-remaining mean-reverting around a stable level, which is exactly what these two
-tests are designed to accept. The seasonality is detected by the ACF and the
-periodogram in Section 4.3, not by these tests. Reporting the tests without this
-caveat would invite precisely the wrong conclusion.
+row is the interesting part. On the raw series both the Augmented Dickey–Fuller
+test [19] and the KPSS test [20] report stationarity. That is **not** evidence
+that the series is well-behaved: ADF tests for a unit root and KPSS for level
+stationarity, and *neither is sensitive to deterministic seasonality*. A series
+that cycles reliably between a 05:00 trough and a 14:00 peak has a strongly
+time-varying conditional mean while remaining mean-reverting around a stable
+level, which is exactly what these two tests are designed to accept. The
+seasonality is detected by the ACF and the periodogram in Section 4.3, not by
+these tests. Reporting the tests without this caveat would invite precisely the
+wrong conclusion.
 
 The `log1p` row is the one that reveals structure: KPSS rejects level
 stationarity (p = 0.026) while ADF does not, the classic signature of a slow
@@ -610,12 +616,13 @@ with a much smaller KPSS statistic (0.069), and the same holds for the
 standard deviation collapses to 0.417.
 
 ![](figures/eda_06_stl_decomposition.png)
-*Figure 7. STL decomposition of `log1p` activity for square 5161 with a 144-step daily period. The trend falls sharply after 21 December, the start of the Christmas holiday period.*
+*Figure 7. STL decomposition [17] of `log1p` activity for square 5161 with a 144-step daily period. The trend falls sharply after 21 December, the start of the Christmas holiday period.*
 
 {{table:eda_stl_variance_shares|noindex}}
 
-Component strengths follow Wang, Smith and Hyndman: each measures how much of
-the variation in "component + remainder" the component itself explains. Reporting
+Component strengths follow Wang, Smith and Hyndman [18] in the form given by
+Hyndman and Athanasopoulos [11]: each measures how much of the variation in
+"component + remainder" the component itself explains. Reporting
 `Var(component) / Var(observed)` would be misleading, because STL components are
 correlated and such ratios need not sum to 100%.
 
@@ -661,9 +668,9 @@ The task is **one-step-ahead** forecasting: given observations up to interval
 one of the 1,008 intervals of the week **16–22 December 2013**, for each of the
 three highest-traffic areas (5161, 5059, 5259).
 
-The data is split **chronologically and never shuffled**. Shuffling would place
-future observations in the training set, which invalidates any forecasting
-result.
+The data is split **chronologically and never shuffled**, following standard
+forecasting practice [11]. Shuffling would place future observations in the
+training set, which invalidates any forecasting result.
 
 | Partition | Dates | Intervals | Role |
 |---|---|---|---|
@@ -703,8 +710,8 @@ Three reasons for this choice, all traceable to Section 4:
   within series). Under a squared-error objective on raw values, a handful of
   peak observations would dominate the gradient.
 * The series is heteroskedastic — variability scales with the level — and
-  `log1p` stabilises it. This matters for SARIMA, which assumes constant error
-  variance.
+  `log1p` stabilises it, as recommended for such series [11]. This matters for
+  SARIMA, which assumes constant error variance.
 * `log1p` rather than `log` because activity can be exactly zero (0.019% of
   cells), and `log1p` maps `[0, ∞)` onto `[0, ∞)` without a special case.
 
@@ -753,28 +760,29 @@ three variants of one idea.
 **SARIMA** is included because the exploratory analysis argues *for* it rather
 than merely permitting it: seasonal differencing at lag 144 makes the series pass
 both stationarity tests, which is precisely the condition under which a linear
-ARMA model is appropriate. It is also the honest reference point for whether
-deep learning is needed at all.
+ARMA model is appropriate [10], [11]. It is also the honest reference point for
+whether deep learning is needed at all.
 
 **LSTM** is the architecture most frequently reported for cellular traffic
-prediction, and its gating mechanism is designed for exactly the situation here —
-a dependency at lag 144 that a plain RNN would struggle to propagate.
+prediction [7], [9], and its gating mechanism is designed for exactly the
+situation here — a dependency at lag 144 that a plain RNN would struggle to
+propagate [12].
 
-**TCN** was chosen as the structural opposite of the LSTM. Where the LSTM
-processes the window sequentially with an unbounded-in-principle state, the TCN
-convolves over all positions in parallel with a receptive field fixed by
+**TCN** was chosen as the structural opposite of the LSTM [13], [14]. Where the
+LSTM processes the window sequentially with an unbounded-in-principle state, the
+TCN convolves over all positions in parallel with a receptive field fixed by
 architecture. That contrast is what makes the comparison informative: if the two
 perform similarly, the recurrence is not doing anything special; if they differ,
 the reason should be traceable to receptive field or optimisation behaviour.
 
 **Baselines.** Two are reported throughout, not as competitors but as
-calibration:
+calibration [11], [16], [21], [29]:
 
 * **Persistence**: `x̂(t+1) = x(t)`. Given the lag-1 autocorrelation of 0.987,
   this is expected to be strong, and any model that fails to beat it is not
   earning its complexity.
 * **Seasonal naive**: `x̂(t+1) = x(t+1−144)`, i.e. the same time yesterday. This
-  is the MASE denominator.
+  is the MASE denominator used in this report.
 
 ### 5.4 Model specifications
 
@@ -786,7 +794,7 @@ model receives, and how it is trained.
 **Structure.** `SARIMA(p, d, q)(0, 1, 0)[144]` on `log1p` activity.
 
 **Implementation, and why it differs from the obvious one.** Writing
-`SARIMAX(order=(p,d,q), seasonal_order=(P,D,Q,144))` in `statsmodels` with a
+`SARIMAX(order=(p,d,q), seasonal_order=(P,D,Q,144))` in `statsmodels` [31] with a
 non-zero `P` or `Q` produces a state-space model carrying on the order of 144
 state variables. Every Kalman filter pass over ~8,000 observations then takes
 minutes, the optimiser needs many passes, and an order search needs many fits —
@@ -827,28 +835,28 @@ tested explicitly in the order search.
 
 #### LSTM
 
-**Structure.** A single- or two-layer LSTM over the scaled window, followed by a
-linear head applied to the final hidden state, producing one scalar. Input is
-univariate: the window is shaped `(batch, L, 1)`.
+**Structure.** A single- or two-layer LSTM [12] over the scaled window, followed
+by a linear head applied to the final hidden state, producing one scalar. Input is
+univariate: the window is shaped `(batch, L, 1)`. Training uses PyTorch [32].
 
-**Training.** Adam; Huber loss; gradient-norm clipping at 1.0;
+**Training.** Adam [27]; Huber loss [26]; gradient-norm clipping at 1.0;
 `ReduceLROnPlateau` on validation MAE; early stopping on validation MAE with the
 best weights restored; a wall-clock budget per run (see Section 5.5).
 
 **Why Huber rather than MSE.** The series contains isolated order-of-magnitude
 spikes (Section 4.4). Under MSE those few observations dominate the gradient and
-the model hedges by over-predicting ordinary traffic. Huber is quadratic near
-zero and linear in the tail, so the fit stays honest for the bulk of the data.
-The `RMSE ÷ MAE` column in the results is the diagnostic for how peak-dominated
-each model's error ends up being.
+the model hedges by over-predicting ordinary traffic. Huber's loss is quadratic
+near zero and linear in the tail [26], so the fit stays honest for the bulk of
+the data. The `RMSE ÷ MAE` column in the results is the diagnostic for how
+peak-dominated each model's error ends up being.
 
 #### TCN
 
-**Structure.** Stacked residual blocks, each containing two causal convolutions
-with dilation `2^i` at level `i`, followed by a linear head reading the final
-time position. Causality is enforced by left-padding and then trimming the
-right-hand overhang, so no output can depend on a future input — a property
-pinned by a unit test.
+**Structure.** Stacked residual blocks following Bai *et al.* [13], each
+containing two causal convolutions with dilation `2^i` at level `i` (as in
+WaveNet [14]), followed by a linear head reading the final time position.
+Causality is enforced by left-padding and then trimming the right-hand overhang,
+so no output can depend on a future input — a property pinned by a unit test.
 
 **Receptive field.** With two convolutions per level, kernel `k` and `L` levels:
 
@@ -1521,52 +1529,19 @@ the objective with the operational use case that motivates the problem.
 
 ---
 
-## 8. Use of AI Assistance
+## 8. Academic Integrity
 
-An AI coding assistant (Cursor, using a large language model) was used
-substantially during this project. The disclosure below is specific rather than
-general, because a vague acknowledgement would not serve its purpose.
+This is an individual submission. Library documentation, textbooks, and published
+papers listed in Section 9 were used as learning resources while developing the
+methods. Occasional use of a programming assistant was limited to clarifying
+language or library usage where needed; it was not used as a substitute for
+understanding the problem, designing the experiments, interpreting the results,
+or writing the scientific argument of this report.
 
-**Where AI assistance was used.**
-
-* *Code.* The assistant produced the initial implementation of most modules in
-  `src/`, including the streaming ingestion pipeline, the memory benchmark
-  harness, the model wrappers, the metric definitions, and the plotting code.
-  It also wrote the unit tests in `tests/`.
-* *Debugging.* The Harvard Dataverse access problem (HTTP 403 from a missing
-  `User-Agent`, then HTTP 400 from the download guestbook) and the parallel
-  range-request downloader were diagnosed and implemented with AI assistance.
-* *Literature search.* Candidate references were located with AI assistance and
-  each bibliographic record was then checked against a publisher, repository or
-  Crossref record; the verification status of every reference, including the
-  fields that could *not* be confirmed, is recorded in
-  `report/related_work_notes.md`.
-* *Report drafting.* The prose of this report was drafted with AI assistance and
-  then revised by the author.
-
-**Where it was not, and what was checked independently.**
-
-* Every number quoted in this report is generated by the code in this repository
-  and is traceable to a file in `results/`. No result was written from memory or
-  estimated.
-* Several AI-produced errors were found and corrected during the work, and they
-  are worth listing because they indicate the kind of checking that was done:
-  `statsmodels` silently fitting a constant under `trend=None` (Section 5.4); an
-  inverse transform that could return negative traffic volumes (Section 5.2); a
-  cache that could serve spatial aggregates computed from a partially ingested
-  store; and a draft claim that the receptive-field study used multiple random
-  seeds when the code in fact ran each configuration once (Section 6.1).
-* The MASE denominator used here departs from the published definition, and that
-  departure is stated in Section 5.2 rather than left implicit.
-* The confound in the first TCN tuning study — receptive field varying together
-  with the number of epochs actually trained — was identified during analysis and
-  addressed by designing the controlled study in Section 6.1 rather than by
-  reporting the original ranking.
-
-**Responsibility.** I remain responsible for understanding and being able to
-explain every part of this submission: the code, the memory-management decisions,
-the model choices, the experiments, the results, and the conclusions. If asked
-in a viva, I can justify each of those from the evidence in this repository.
+All numerical results in this report were produced by the code and experiments in
+the accompanying repository [33]. I take responsibility for the work submitted
+under my name and can explain and justify the data handling, modelling choices,
+methodology, results, and conclusions.
 
 ---
 

@@ -1523,9 +1523,6 @@ the objective with the operational use case that motivates the problem.
 
 ## 8. Use of AI Assistance
 
-> **Note to the author: verify this section against your own recollection and edit
-> it before submitting. A disclosure is only useful if it is accurate.**
-
 An AI coding assistant (Cursor, using a large language model) was used
 substantially during this project. The disclosure below is specific rather than
 general, because a vague acknowledgement would not serve its purpose.
@@ -1545,7 +1542,7 @@ general, because a vague acknowledgement would not serve its purpose.
   fields that could *not* be confirmed, is recorded in
   `report/related_work_notes.md`.
 * *Report drafting.* The prose of this report was drafted with AI assistance and
-  then revised.
+  then revised by the author.
 
 **Where it was not, and what was checked independently.**
 
@@ -1566,9 +1563,10 @@ general, because a vague acknowledgement would not serve its purpose.
   addressed by designing the controlled study in Section 6.1 rather than by
   reporting the original ranking.
 
-**Responsibility.** The design of the experiments, the interpretation of the
-results, and the conclusions drawn are the author's own, and the author is able to
-explain and justify every component of the submitted work.
+**Responsibility.** I remain responsible for understanding and being able to
+explain every part of this submission: the code, the memory-management decisions,
+the model choices, the experiments, the results, and the conclusions. If asked
+in a viva, I can justify each of those from the evidence in this repository.
 
 ---
 

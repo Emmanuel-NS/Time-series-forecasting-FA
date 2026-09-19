@@ -1,9 +1,14 @@
 # Video presentation guide (7–10 minutes)
 
+> **You still need to do this.** The rest of the assignment is finished.
+> After recording, follow `report/SUBMIT.md` to put the video URL in the PDF and
+> submit.
+
 This is a script *skeleton* plus the technical explanations you need in order to
 answer follow-up questions. **Do not read it aloud verbatim.** Read the
 "why it works this way" boxes until you can explain each idea in your own words —
 that is what the viva and the marking rubric are actually testing.
+
 
 The rubric rewards: implementation-specific explanation, technical
 understanding, one important technical/modelling decision discussed in depth,

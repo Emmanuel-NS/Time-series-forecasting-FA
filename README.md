@@ -5,6 +5,12 @@ Milan grid, comparing a **seasonal ARIMA**, an **LSTM** and a **temporal
 convolutional network** across geographical areas with different traffic
 characteristics.
 
+**Repository:** https://github.com/Emmanuel-NS/Time-series-forecasting-FA
+
+> **Still to do before submission:** record the video and add its URL — see
+> [`report/SUBMIT.md`](report/SUBMIT.md).
+
+
 > **Research question.** How do different sequential models compare for
 > one-step-ahead mobile network traffic forecasting, and how does their
 > performance vary across geographical areas with different traffic
@@ -340,10 +346,14 @@ slots of the test week, averaged over the three study areas.
 
 ## 10. Use of AI assistance
 
-Disclosed in the report. AI tooling was used for code scaffolding, refactoring
-and prose editing. All modelling decisions, experiment design, result
-interpretation and conclusions are the author's own, and every number reported
-was produced by the code in this repository.
+Disclosed in Section 8 of the report. An AI coding assistant (Cursor) was used for
+code scaffolding, debugging (including Dataverse access), literature search, and
+report drafting. Every reported number comes from code in this repository. Design
+decisions, experiment interpretation, and conclusions are the author's
+responsibility; see the report for the full specific disclosure.
+
+Submission steps that still need the author (video + URL): `report/SUBMIT.md`.
+
 
 ---
 

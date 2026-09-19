@@ -5,7 +5,7 @@ https://github.com/Emmanuel-NS/Time-series-forecasting-FA
 
 Only these steps need **you**:
 
-## 1. Record the video (7–10 minutes)
+## 1. Record the video (7 to 10 minutes)
 
 Use `report/VIDEO_GUIDE.md`. Screen-record with the repo open. Upload the video
 wherever your course asks (Drive, YouTube unlisted, Canvas, etc.).
@@ -35,6 +35,6 @@ Upload `report/report.pdf` as the assignment file.
 
 ---
 
-**Optional but smart before the viva:** rehearse `report/VIDEO_GUIDE.md` →
-“The hardest questions you are likely to get”, and make sure you can explain the
-code and results without reading from the guide.
+**Optional but useful before the viva:** rehearse the hard questions section in
+`report/VIDEO_GUIDE.md`, and make sure you can explain the code and results
+without reading from the guide.

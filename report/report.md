@@ -1,48 +1,48 @@
 # Comparative Analysis of Sequential Models for Mobile Network Traffic Forecasting
 
-**Emmanuel NSABAGASANI** — African Leadership University  
+**Emmanuel NSABAGASANI**, African Leadership University  
 Formative Assignment 1, September 2026
 
 ---
 
 ## Abstract
 
-Short-horizon forecasts of cellular traffic underpin dynamic resource allocation and base-station energy saving, yet radio access networks still account for 73–87% of mobile-operator energy consumption [23], [24]. This study compares three sequential models — seasonal ARIMA, LSTM, and temporal convolutional network (TCN) — for one-step-ahead (10-minute) Internet activity forecasting on the Telecom Italia Milan grid [1], and asks how performance varies across areas with different traffic characteristics.
+Short-horizon forecasts of cellular traffic support resource allocation and energy saving, while radio access networks still use most of an operator's electricity (about 73 to 87%) [23], [24]. This study compares seasonal ARIMA, an LSTM, and a temporal convolutional network (TCN) for one-step-ahead (10-minute) Internet activity forecasting on the Telecom Italia Milan grid [1]. It also asks whether rankings change across areas with different traffic patterns.
 
-The 19.4 GB source dataset was reduced to a 341 MB memory-mapped `float32` store by streaming aggregation; peak resident memory fell from 408 to 149 MB (2.7×), in-memory payload from 296 to 11 MB (27×), never exceeding 241 MB against a 1 GB budget. Models were tuned on the highest-traffic area and applied unchanged to three areas, evaluated on 16–22 December 2013.
+The 19.4 GB raw dataset was reduced to a 341 MB memory-mapped float32 store by streaming aggregation. Peak resident memory fell from 408 MB to 149 MB (about 2.7 times), and the in-memory payload fell from 296 MB to 11 MB (about 27 times), staying under 241 MB against a 1 GB budget. Models were tuned on the busiest area and then applied unchanged to three areas for the week of 16 to 22 December 2013.
 
-All models beat seasonal-naive by a wide margin (MASE ≪ 1), but seasonal naive is weak here: lag-1 autocorrelation is 0.987 versus 0.878 at lag 144. Against persistence, SARIMA is 7.6–16.4% worse on every area. The TCN improved on persistence by 14.8%, 15.4%, and 15.5% — spread 0.007 across areas differing fivefold in level — while the LSTM achieved a similar mean (0.905 vs 0.848) with 25× larger spread. A controlled TCN receptive-field study found no measurable effect between 61 and 509 steps; levels = 4 was selected for parsimony. Errors concentrate at the daily peak; the worst window on the busiest area was the Friday-to-Saturday transition (+48% day-over-day), not an unprecedented pre-Christmas peak, and no model receives day-of-week input.
+Every model beat the seasonal-naive baseline by a large margin, so all MASE values are well below 1. That baseline is weak here, because lag-1 autocorrelation is 0.987 while lag 144 is only 0.878. Against persistence (repeat the last value), SARIMA is 7.6 to 16.4% worse on every area. The TCN improves on persistence by 14.8%, 15.4%, and 15.5%, with a spread of only 0.007 across areas that differ fivefold in level. The LSTM has a similar average (0.905 versus 0.848) but a spread about 25 times larger. A controlled TCN study found no clear effect of receptive field between 61 and 509 steps, so the shallowest configuration (4 levels) was kept for simplicity. Errors are largest at the daily peak. The worst window on the busiest area is the Friday to Saturday jump (+48%), not an unusually high Christmas peak, and none of the models sees day-of-week as an input.
 
 ---
 
 ## 1. Introduction
 
-Mobile operators allocate capacity against demand that varies by an order of magnitude within a day and between neighbouring city blocks. Short-horizon forecasts support dynamic spectrum allocation, load balancing, admission control, and energy-saving cell sleep modes [25] — decisions where under-provisioning degrades service at peak and over-provisioning wastes energy in a sector where RANs consume 73–87% of operator electricity [23], [24].
+Mobile operators must plan capacity against demand that can change by an order of magnitude within a day and between nearby city blocks. Knowing traffic a few minutes ahead matters for spectrum allocation, load balancing, admission control, and putting lightly loaded cells into sleep modes [25]. Under-provisioning hurts service at peak times. Over-provisioning wastes energy where the radio access network already dominates operator electricity use [23], [24].
 
-This study uses the Telecom Italia Milan dataset [1]: telecommunications activity on a 100 × 100 grid of ~235 m squares at 10-minute resolution for two months [2], [3]. At 19.4 GB raw and ~320 million rows, the dataset does not fit in working memory on the hardware used; data handling is therefore part of the research problem.
+This study uses the Telecom Italia Milan dataset [1]: activity on a 100 by 100 grid of about 235 m squares, recorded every 10 minutes for two months [2], [3]. The raw files are about 19.4 GB and roughly 320 million rows, which does not fit comfortably in the memory of the machine used here. Handling that scale is part of the problem, not a side task.
 
-**Research question.** *How do different sequential models compare for one-step-ahead mobile network traffic forecasting, and how does performance vary across geographical areas with different traffic characteristics?*
+**Research question.** How do different sequential models compare for one-step-ahead mobile network traffic forecasting, and how does their performance change across geographical areas with different traffic characteristics?
 
 **Objectives.**
 
-1. Design a data pipeline tractable within ~1 GB working memory and quantify its trade-offs.
-2. Characterise temporal and spatial structure and derive model configurations from it.
-3. Implement SARIMA, LSTM, and TCN; tune on one area; evaluate unchanged on three areas.
-4. Test whether neural complexity is justified against strong naive baselines and identify failure modes.
+1. Build a pipeline that fits in about 1 GB of working memory and measure what that costs.
+2. Describe spatial and temporal structure, then use that evidence to set model inputs and orders.
+3. Implement SARIMA, LSTM, and TCN; tune on one area; evaluate the same settings on three areas.
+4. Check whether the neural models earn their complexity against strong naive baselines, and show where they fail.
 
-The comparison uses identical splits, scaling, evaluation harness, and error metrics in original activity units.
+All models share the same splits, scaling, metrics, and evaluation code. Errors are always reported in original activity units.
 
 ---
 
 ## 2. Related Work
 
-The Milan Big Data Challenge release [1] provides an *activity measure* — CDR events apportioned to grid squares by coverage overlap — not byte volumes. The 100 × 100 grid and Nov 2013–Jan 2014 window are standard in downstream work [2], [3]. Zhang, Patras, and Haddadi [9] survey deep learning in mobile networking; this study focuses on short-horizon single-cell forecasting.
+Barlacchi et al. [1] release Milan CDR activity as an *activity index* allocated to grid squares by coverage overlap, not as byte counts. The 100 by 100 layout and November 2013 to January 2014 window are used throughout later work [2], [3]. Zhang, Patras, and Haddadi [9] survey deep learning in mobile networking. This study stays with short-horizon, single-cell forecasting.
 
-Seasonal ARIMA with dual periodicities is established for network traffic [10]; here we difference at lag 144 (daily) only, not lag 1,008 (weekly), because a second seasonal difference would consume another week of a 62-day series. Stationarity is assessed with ADF [19] and KPSS [20] together [11]. Prior Milan studies often compare deep models to non-seasonal ARIMA [2] or aggregate to hourly [3]; we retain native 10-minute resolution and fit a seasonally differenced SARIMA on `log1p` scale as a fair linear baseline.
+Seasonal ARIMA has a long history in wireless traffic [10]. At 10-minute resolution the daily period is 144 steps and the weekly period is 1,008. Only the daily difference is used here, because a weekly difference would remove another week from a 62-day series. Stationarity checks use ADF [19] and KPSS [20] together [11]. Several Milan papers compare deep models to non-seasonal ARIMA [2] or aggregate traffic to hourly bins [3]. Here the native 10-minute series is kept, and the linear baseline is seasonally differenced on a log1p scale.
 
-Deep models on this dataset include ConvLSTM/STCNet [4], spatial CNNs [3], graph models [6], and architecture comparisons [5]. Reported gains are typically *long-horizon*: Zhang and Patras [2] show margins growing with horizon and shrinking at short horizons; Trinh *et al.* [7] separately evaluate one-step performance and input-window length. Bai *et al.* [13] report TCNs outperforming LSTMs on diverse tasks; Zhang *et al.* [28] combine TCN with attention on Milan data but compare neural baselines only, without persistence or classical references.
+Deep models on this data include ConvLSTM or STCNet [4], spatial CNNs [3], graph models [6], and early architecture comparisons [5]. Reported gains are often for longer horizons. Zhang and Patras [2] show the gap growing with horizon and shrinking for short horizons. Trinh et al. [7] study one-step error and input length on other LTE data. Bai et al. [13] argue that TCNs can match or beat LSTMs. Zhang et al. [28] use a TCN hybrid on Milan data, but their baselines are other neural networks only.
 
-Evaluation follows Hyndman and Koehler [16]: MASE scales errors against a naive benchmark, though we use seasonal-naive on the evaluation partition rather than in-sample one-step naive (Section 5.2). Makridakis *et al.* [21], [22] and Wang *et al.* [6] show simple methods remain competitive; Zeng *et al.* [29] find a "Repeat" baseline beating Transformers on some benchmarks but losing on long-horizon seasonal tasks — the opposite regime from one-step forecasting on a series with lag-1 ACF 0.987. No prior Milan study reports persistence or seasonal-naive for single-cell one-step Internet traffic [2], [3], [4], [6], [28], so we compute those baselines here. STL decomposition [17], [18] and Huber loss [26] with Adam [27] follow standard practice; asymmetric operational costs [8] are noted but not used, as symmetric metrics are required.
+Hyndman and Koehler [16] motivate MASE against a naive scale. This report uses seasonal-naive error on the evaluation week as the denominator (Section 5.2), which is a deliberate variant of their definition. Simple methods remain competitive in large forecasting studies [21], [22] and in cellular traffic comparisons [6]. Zeng et al. [29] show that a "repeat last value" baseline can beat Transformers on some tasks and lose on long-horizon seasonal ones. No Milan paper reviewed here reports persistence or seasonal-naive for single-cell one-step Internet traffic [2], [3], [4], [6], [28], so those baselines are computed in this work. STL [17], [18], Huber loss [26], and Adam [27] follow common practice. Asymmetric operational costs [8] are noted but not used, because the assignment asks for symmetric metrics.
 
 ---
 
@@ -50,101 +50,101 @@ Evaluation follows Hyndman and Koehler [16]: MASE scales errors against a naive 
 
 ### 3.1 The data
 
-Call Detail Records from Telecom Italia [1] cover Milan as a 100 × 100 grid (~235 m squares) [2], [3]. For each area, 10-minute interval, and country code, the release records SMS, call, and Internet activity from 1 November 2013 to 1 January 2014 — 62 days, 8,928 intervals. Values are a normalised activity proxy [1]; comparisons are between models on the same area. This study forecasts **Internet activity** at native 10-minute resolution.
+Telecom Italia CDRs [1] cover Milan as a 100 by 100 grid [2], [3]. Each row records SMS, call, and Internet activity for a square, a 10-minute interval, and a country code, from 1 November 2013 to 1 January 2014 (62 days, 8,928 intervals). Values are a scaled activity proxy [1], so models are compared on the same area rather than in absolute bytes. The target is **Internet activity** at the original 10-minute resolution.
 
 ### 3.2 Computational constraint
 
-Work ran on an Intel Core i5-6300U (2 cores, 4 threads, 2.4 GHz), 7.9 GB RAM, Windows 10, no GPU. Raw data: 19.38 GB, 319,896,289 rows — roughly 2.5× total RAM. Full `pd.read_csv` loading fails outright; peak memory must depend on chunk size, not dataset size.
+Experiments ran on an Intel Core i5-6300U (2 cores, 4 threads, 2.4 GHz), 7.9 GB RAM, Windows 10, and no GPU. The raw files total 19.38 GB and 319,896,289 rows, about 2.5 times total RAM. Loading everything with `pd.read_csv` fails. Peak memory has to follow chunk size, not file size.
 
 ### 3.3 Memory management strategy
 
-Five decisions, in order:
+Five steps, in order:
 
-1. **Aggregate country codes during parsing** — sums `(square, interval, country)` to `(square, interval)`, reducing 319.9M rows to 89.28M (3.6×).
-2. **Column projection** — `usecols=[0, 1, 7]` for square, interval, internet only.
-3. **Chunked streaming** — 1M-row chunks folded into a pre-allocated accumulator; peak memory independent of file size.
-4. **Dense `float32` memmap store** — grid is >99.9% complete daily; sparse format would be larger. Store: **341 MB**; one area's series touches ~35 KB resident via `numpy.memmap` [30].
-5. **Download, process, discard** — one raw day at a time; peak disk ≈ 721 MB vs 19.38 GB. Accumulation in `float64`, cast to `float32` once per day.
+1. **Sum over country codes while parsing**, so each cell is (square, interval) only. Rows fall from 319.9 million to 89.28 million (about 3.6 times).
+2. **Read only three columns** with `usecols=[0, 1, 7]` (square, interval, internet).
+3. **Stream in 1 million-row chunks** into a fixed accumulator so peak memory does not grow with file size.
+4. **Store a dense float32 matrix** and read it with `numpy.memmap` [30]. The grid is essentially complete, so a sparse format would store indices and be larger. The store is **341 MB**. One full area series needs about 35 KB resident.
+5. **Download one day, process it, then delete the raw file** when the pipeline downloaded it. Peak disk use is about 721 MB instead of 19.38 GB. Sums use float64 and cast to float32 once per day.
 
 #### Measured effect
 
-Benchmarks on one day file (308 MB, 4.8M rows), each in a **separate subprocess** (CPython does not return freed heap to the OS):
+Four loaders were timed on the same 308 MB day file, each in a **separate subprocess** (so earlier heap growth cannot hide later savings):
 
 {{table:memory_benchmark|noindex}}
 
-Peak RSS falls 408 → 149 MB (2.7×); in-memory payload 295.6 → 11.0 MB (27×). RSS includes ~75 MB interpreter baseline. Chunked streaming fixes payload at chunk size regardless of file count; naive loading would need ~62 × 296 MB ≈ 18 GB resident.
+Peak RSS falls from 408 MB to 149 MB. The payload falls from 295.6 MB to 11.0 MB. About 75 MB of RSS is the interpreter and libraries. Streaming keeps the payload fixed by chunk size. Loading all 62 days the naive way would need on the order of 18 GB resident.
 
-Across 62 days, peak RSS averaged 166 MB, maximum **241 MB**:
+Over the full ingest, average peak RSS was 166 MB and the maximum was **241 MB**:
 
 {{table:memory_footprint_summary|noindex}}
 
 #### Trade-offs
 
-Only Internet activity is retained (all five channels → 1.70 GB store). Country-code breakdown is irrecoverable. `float32` is not bit-exact but below publisher noise floor. Dense layout assumes a complete grid (verified for Milan). Parallel HTTP range requests (8 workers) raised download from ~0.17 MB/s to 4–5 MB/s.
+Only Internet traffic is kept (all five channels would make a 1.70 GB store). Country detail is gone. float32 is not bit-exact, but it is finer than the publisher's scaled index. The dense layout fits Milan; it would waste space on a sparse grid. Eight parallel HTTP range requests raised download speed from about 0.17 MB/s to about 4 to 5 MB/s.
 
 ### 3.4 Access note
 
-Harvard Dataverse requires a guestbook POST with `?signed=true` for authenticated downloads since v6.10; signed URLs expire ~1 minute and are re-issued on demand.
+Harvard Dataverse needs a guestbook response with `?signed=true` even for an authenticated user. Signed URLs expire after about a minute and are refreshed during download.
 
 ### 3.5 Data quality
 
-Checks before modelling: all 62 days present, no NaNs, 0.019% zeros, zero out-of-range rows; city profile min 05:00 / max 13:00 CET and weekend/weekday ratio 0.83; grid orientation verified via `milano-grid.geojson` (r = 1.000); All Saints' Day (1 Nov) total 82.5M vs ~110M on ordinary weekdays.
+Before modelling: all 62 days present, no NaNs, 0.019% exact zeros, no out-of-range rows. City-wide traffic is lowest around 05:00 and highest around 13:00 CET, and weekend activity is 0.83 of weekday activity. Grid row and column indices match the official GeoJSON centroids (correlation 1.000). 1 November (All Saints' Day) totals about 82.5 M versus about 110 M on ordinary weekdays.
 
 ---
 
 ## 4. Exploratory Analysis
 
-Exploratory analysis motivates modelling choices in Section 5.
+This section is used to justify the modelling choices in Section 5.
 
 ### 4.1 Spatial distribution
 
 ![](figures/eda_01_spatial_distribution.png)
-*Figure 1. Total Internet activity per area. (a) Right-skewed distribution. (b) Log-scale unimodal shape. (c) Map with three highest-traffic areas (green) and reference areas 4159, 4556 (pink).*
+*Figure 1. Total Internet activity per area. (a) Raw distribution. (b) Log scale. (c) Map with the three busiest areas (green) and reference areas 4159 and 4556 (pink).*
 
 | Statistic | Value |
 |---|---|
-| Mean / median total activity | 555,289 / 277,871 |
-| Maximum ÷ median | 45.8 |
+| Mean / median total activity | 555,375 / 277,871 |
+| Maximum divided by median | 45.8 |
 | Gini coefficient | 0.608 |
 | Top 1% / top 10% share | 11.05% / 48.39% |
 
-Traffic concentrates in a historic-centre core (Duomo area); the three busiest squares are contiguous within 0.5 km. A single-area conclusion cannot generalise city-wide — motivating evaluation on three areas with unchanged hyperparameters.
+Traffic is concentrated around the Duomo. The three busiest squares sit within 0.5 km of each other. Results from one cell should not be treated as city-wide, which is why three areas are evaluated with one shared configuration.
 
 ### 4.2 Area time series
 
 ![](figures/eda_02_two_week_series.png)
-*Figure 2. Internet traffic, 1–14 November 2013, for three highest-traffic and two reference areas. Weekends shaded.*
+*Figure 2. Internet traffic, 1 to 14 November 2013, for the three busiest areas and two reference areas. Weekends are shaded.*
 
 {{table:eda_area_statistics|noindex}}
 
-Five areas differ fivefold in level and in *shape*. Square 4159 (0.39 km from Bocconi University) has office-hours ratio 1.45, weekday peak 12:00, and weekend activity 0.59× weekday. Square 4556 (Navigli nightlife) peaks at 22:00 with weekend traffic 1.14× weekday — the only area where nights exceed office hours. Square 5161 (Duomo, rank 1) peaks afternoons with weekend 1.38× weekday; square 5259, 0.2 km away, is office-dominated (weekend 0.43×). Per-area scaling and unchanged cross-area transfer are therefore substantive tests, not formalities.
+Levels differ by about five times, and shapes differ too. Square 4159 (near Bocconi University) peaks at midday on weekdays, with weekend traffic 0.59 times weekday traffic. Square 4556 (Navigli) peaks near 22:00 and has higher weekend traffic (1.14 times weekday). Square 5161 (Duomo) has weekend traffic 1.38 times weekday, while square 5259 next to it is office-like (weekend 0.43 times weekday). Scaling is therefore fitted per area, and transferring one tuned setup to all three areas is a real test.
 
 ![](figures/eda_04b_diurnal_signatures.png)
-*Figure 3. Weekday/weekend diurnal signatures, normalised by area mean.*
+*Figure 3. Weekday and weekend daily profiles, each normalised by that area's mean.*
 
 ### 4.3 Autocorrelation and periodicity
 
 ![](figures/eda_05_autocorrelation.png)
-*Figure 4. Square 5161. (a) ACF to three days. (b) PACF (48 lags). (c) Periodogram.*
+*Figure 4. Square 5161. (a) ACF. (b) PACF. (c) Periodogram.*
 
 {{table:eda_acf_at_seasonal_lags|noindex}}
 
-Lag-1 ACF = 0.987; lag 144 = 0.878; lag 72 = −0.683 (day/night antiphase). Periodogram peak at 24 h with 12 h harmonic; weaker weekly peak ~6.9 days. PACF: 0.99 at lag 1, 0.26 at lag 2, 0.04 at lag 3 — low AR order after seasonal differencing. Persistence is a serious baseline; lookback 144 motivates neural input windows and TCN receptive-field tuning.
+Lag-1 ACF is 0.987, lag 144 is 0.878, and lag 72 is -0.683. The periodogram peaks at 24 hours, with a 12-hour harmonic and a weaker weekly peak. PACF drops from 0.99 at lag 1 to 0.04 at lag 3, so a low AR order is enough after seasonal differencing. Persistence is a serious baseline. A 144-step lookback is the natural candidate for neural windows and for TCN receptive-field checks.
 
 ### 4.4 Stationarity and decomposition
 
 {{table:eda_stationarity_tests|noindex}}
 
-Raw-series ADF/KPSS both indicate stationarity, but neither detects deterministic seasonality — the ACF/periodogram do. After `log1p` + seasonal difference at lag 144, both tests agree on stationarity (KPSS 0.153).
+On the raw series both ADF and KPSS look stationary, but neither test is sensitive to a regular daily cycle. After log1p and a lag-144 difference, both tests agree (KPSS 0.153).
 
 ![](figures/eda_06_stl_decomposition.png)
-*Figure 5. STL [17] decomposition of `log1p` activity, square 5161, period 144. Trend falls after 21 December (Christmas).*
+*Figure 5. STL [17] of log1p activity for square 5161 (period 144). The trend falls after 21 December.*
 
 {{table:eda_stl_variance_shares|noindex}}
 
-Daily seasonal strength = **0.927**; trend strength = 0.519; remainder SD = 26.1% of observed SD on log scale — an approximate error floor. Calendar anomalies include Christmas Day (z to −6.85), New Year (z to +8.31), and All Saints' weekend. Test week 16–22 December precedes the severest holiday anomalies but contains ordinary weekly cycles that lag-144 seasonal terms cannot represent.
+Daily seasonal strength is 0.927 and trend strength is 0.519. Remainder standard deviation is 26.1% of the observed log-scale standard deviation, which is a rough lower bound on univariate error. Large remainder spikes line up with Christmas, New Year, and the All Saints weekend. The test week (16 to 22 December) is before the worst holiday days, but it still contains ordinary weekly changes that a lag-144 term alone cannot represent.
 
-> **Consequence.** Seasonal differencing at lag 144 on `log1p` supports SARIMA(p,d,q)(0,1,0)[144]; PACF bounds low `p`, `q`. Calendar-driven departures and missing day-of-week inputs limit univariate models — the failure analysis in Section 6.4 confirms this.
+> **Consequence.** Seasonal differencing at lag 144 on log1p supports SARIMA(p,d,q)(0,1,0)[144], and the PACF keeps p and q small. Missing day-of-week information is a design limit for all univariate models here (Section 6.4).
 
 ---
 
@@ -152,54 +152,54 @@ Daily seasonal strength = **0.927**; trend strength = 0.519; remainder SD = 26.1
 
 ### 5.1 Task and evaluation protocol
 
-**One-step-ahead** forecasting: given observations through `t`, predict `t+1` (10 minutes). Evaluated over all 1,008 intervals of **16–22 December 2013** on areas 5161, 5059, 5259. Data split chronologically, never shuffled [11]:
+The task is one-step-ahead forecasting: use history up to time t to predict t+1 (10 minutes later). Evaluation covers all 1,008 intervals of **16 to 22 December 2013** on squares 5161, 5059, and 5259. Splits are chronological and never shuffled [11]:
 
 | Partition | Dates | Intervals | Role |
 |---|---|---|---|
-| Train | 1 Nov – 8 Dec 2013 | 5,472 | fitting; scaler stats |
-| Validation | 9 – 15 Dec 2013 | 1,008 | hyperparameter selection |
-| Test | 16 – 22 Dec 2013 | 1,008 | reported results |
+| Train | 1 Nov to 8 Dec 2013 | 5,472 | fitting and scaler statistics |
+| Validation | 9 to 15 Dec 2013 | 1,008 | hyperparameter choice |
+| Test | 16 to 22 Dec 2013 | 1,008 | reported results |
 
-Validation and test predictions condition on observations immediately before each forecast, including from earlier partitions — this mirrors operational use and is not leakage. No target from validation or test influences fitted parameters, hyperparameter choices, or scaler statistics. SARIMA coefficients are estimated on training data and held fixed; neural networks select weights by validation loss and never see the test week during training. Tuning on square 5161 only; selected configs applied unchanged to all areas so cross-area differences measure generalisation.
+Predictions may use recent observations from an earlier partition, because those values would be available in operation. No validation or test *target* enters training, tuning, or scaler statistics. Tuning uses square 5161 only. The chosen settings are applied unchanged to the other areas.
 
 ### 5.2 Preprocessing and metrics
 
-**Transform:** `y = log1p(x)`, standardised per area on training only, inverted with `x̂ = max(expm1(σ·ẑ + μ), 0)`. `log1p` handles heavy tails, heteroskedasticity [11], and exact zeros (0.019% of cells).
+Activity is mapped with log1p, then standardised using training statistics for that area only, and inverted with a floor at zero. log1p helps with heavy tails, changing variance with level [11], and exact zeros (0.019% of cells).
 
-**Windowing:** Neural models use sliding windows of length `L` over scaled series; candidates 36, 144, 288 steps motivated by ACF. SARIMA receives seasonally differenced `log1p` directly.
+Neural models use sliding windows of length L (candidates 36, 144, and 288). SARIMA uses the seasonally differenced log1p series directly.
 
-**Metrics** computed in original activity units after inversion:
+Metrics are computed after inverse transform:
 
 | Metric | Role |
 |---|---|
 | MAE, RMSE, MAPE | Required |
-| sMAPE | Reported; unreliable near zero |
-| MASE | Primary scaled metric; **denominator = seasonal-naive MAE on the evaluation partition**, not Hyndman's in-sample one-step naive [16] — comparable across areas here but not to published MASE |
-| R², RMSE ÷ MAE | Reference; ratio > 1 indicates peak-dominated error |
+| sMAPE | Reported for completeness; unstable near zero |
+| MASE | Scaled by **seasonal-naive MAE on the same evaluation week**, not Hyndman's in-sample one-step naive [16] |
+| R2 and RMSE/MAE | Extra checks; a high RMSE/MAE ratio means a few large peak errors |
 
-**Baselines:** Persistence `x̂(t+1)=x(t)`; seasonal naive `x̂(t+1)=x(t+1−144)` (MASE denominator).
+Baselines: persistence predicts the last value; seasonal naive predicts the same slot one day earlier (the MASE scale).
 
 ### 5.3 Models
 
-| Model | Family | History aggregation |
+| Model | Family | How history is used |
 |---|---|---|
-| SARIMA(p,d,q)(0,1,0)[144] | Linear | Seasonal differencing + ARMA |
-| LSTM | Recurrent [12] | Gated hidden state |
+| SARIMA(p,d,q)(0,1,0)[144] | Linear | Seasonal difference plus ARMA |
+| LSTM | Recurrent [12] | Gated state over the window |
 | TCN | Convolutional [13], [14] | Dilated causal convolutions |
 
-SARIMA is the honest linear test; LSTM is the recurrent standard in cellular traffic [7], [9]; TCN is the structural contrast with fixed receptive field.
+SARIMA is the linear reference. LSTM is common in cellular traffic work [7], [9]. TCN is the parallel convolutional alternative with a fixed receptive field.
 
 ### 5.4 Specifications
 
-**SARIMA.** `SARIMA(p,d,q)(0,1,0)[144]` on `log1p`. Seasonal difference applied explicitly (`z_t = y_t − y_{t−144}`; fit ARIMA(p,d,q) to `z`; invert via `x̂_{t+1} = expm1(ẑ_{t+1} + y_{t+1−144})`) because `statsmodels` [31] state-space with non-zero seasonal `P` or `Q` carries ~144 state variables and makes order search impractical on two CPU cores. This is mathematically equivalent to `SARIMA(p,d,q)(0,1,0)[144]` with `P = Q = 0` — a real restriction, accepted because seasonal differencing alone achieves stationarity (Section 4.4). ML on training partition; `trend='n'` (not the library default, which would silently add a constant); one-step Kalman predictions with fixed coefficients (`dynamic=False`).
+**SARIMA.** Seasonal differencing is applied by hand (`z_t = y_t - y_{t-144}`, then ARIMA on z) because a full seasonal state-space model with period 144 is too slow for an order search on two CPU cores [31]. Setting seasonal P = Q = 0 is a real limit, accepted because differencing alone already passes the stationarity checks. Coefficients are fit on the training set with `trend='n'`, then held fixed for one-step predictions.
 
-**LSTM.** One- or two-layer LSTM [12], linear head on final hidden state, input `(batch, L, 1)`. PyTorch [32]; Adam [27]; Huber loss [26]; gradient clip 1.0; `ReduceLROnPlateau`; early stopping on validation MAE.
+**LSTM.** One or two layers [12], linear head on the last hidden state, Adam [27], Huber loss [26], gradient clipping, learning-rate reduction, and early stopping on validation MAE (PyTorch [32]).
 
-**TCN.** Residual blocks with dilation `2^i`, causal convolutions [13], [14]. Receptive field: `RF = 1 + 2(k−1)(2^L − 1)`; with k = 3, four levels → RF = 61 (< 144); six levels → RF = 253. Same training protocol as LSTM.
+**TCN.** Residual dilated causal blocks [13], [14]. With kernel size 3, four levels give receptive field 61 (less than one day) and six levels give 253. Training matches the LSTM settings.
 
 ### 5.5 Tuning design
 
-Sequential search (not grid), one change at a time, logged to `results/tuning_<model>_sq5161.csv`. Tuning: 30 epochs max, patience 5, 420 s wall-clock cap; final retrain: 60 epochs, patience 8, 900 s. `RANDOM_SEED = 42`; PyTorch pinned to 2 threads. Wall-clock caps mean selection is best *under budget*, not necessarily asymptotically optimal.
+Tuning is sequential: one change per run, with reasons logged in CSV files. Tuning runs use up to 30 epochs, patience 5, and a 420-second wall-clock cap. Final fits use up to 40 epochs, patience 8, and an 1,800-second cap. The random seed is 42 and PyTorch uses two threads. A wall-clock stop means "best under this budget," not "best forever."
 
 ---
 
@@ -207,62 +207,62 @@ Sequential search (not grid), one change at a time, logged to `results/tuning_<m
 
 ### 6.1 Hyperparameter experiments
 
-All tuning on square 5161, validation week 9–15 December.
+All tuning is on square 5161 for validation week 9 to 15 December.
 
 #### SARIMA
 
 {{table:tuning_sarima_sq5161|noindex}}
 
-PACF supports low orders. Pure MA(1) fails vs AR(1); ARMA(1,1) gives largest gain (MAE 136.3, MASE 0.462). Beyond ARMA(1,1), validation MAE flat (136.3–137.0) while AIC still improves — held-out MAE selects **ARMA(1,1) on seasonally differenced `log1p`** (3 parameters). Non-seasonal difference and constant term add nothing.
+Low orders match the PACF. ARMA(1,1) is best on held-out MAE (136.3, MASE 0.462). Higher orders barely change validation MAE while AIC keeps improving, so the simpler ARMA(1,1) on seasonally differenced log1p is kept. Adding a non-seasonal difference or a constant does not help.
 
 #### LSTM
 
 {{table:tuning_lstm_sq5161|noindex}}
 
-Extending lookback 36 → 144 worsened MAE (108.2 → 112.5); doubling hidden width at 144 recovered and improved (107.3, MASE 0.364) — longer windows need more capacity. Two-layer and 288-step runs hit the 420 s cap (truncated, not converged). Best: **64 hidden units, 144-step window**.
+Moving from a 36-step to a 144-step window made the small network worse (108.2 to 112.5). Doubling the hidden size at lookback 144 recovered the loss and reached 107.3 MAE. Deeper or longer runs hit the time cap and are treated as incomplete. The selected LSTM uses 64 units and lookback 144.
 
 #### TCN initial search
 
 {{table:tuning_tcn_sq5161|noindex}}
 
-Only the shallowest run (RF = 61) completed by early stopping; deeper configs hit the wall-clock cap at 5–15 epochs, confounding receptive field with training effort. A controlled follow-up was required.
+Only the shallowest model finished by early stopping. Deeper models stopped on the time budget after few epochs, so receptive field and training effort were mixed. A second, controlled study was needed.
 
 #### TCN receptive-field study
 
-Fixed: channels, batch size, LR, 144-step lookback, **24 epochs each**, no early stopping. Depth varies RF: 61, 125, 253, 509 steps. Single seed (42); four-level config reproduced 103.17 exactly — pipeline deterministic, seed sensitivity unmeasured.
+Channel width, batch size, learning rate, and lookback stay fixed. Every depth trains for 24 epochs with early stopping off. Receptive fields are 61, 125, 253, and 509 steps.
 
 {{table:tuning_tcn_receptive_field_sq5161|noindex}}
 
-Validation MAE: 61 → 103.17, 125 → 109.61, 253 → 104.55, 509 → 102.47. Ordering is **non-monotonic** (125 worst, worse than both neighbours by 5–6 MAE units); since depth is the only variable and epochs are matched, the middle configuration's poor performance bounds run-to-run variation at ~5 MAE units. Best–worst gap 0.70 ≪ 5 — **no measurable RF effect** at one-step horizon. A 61-step field that provably cannot see "same time yesterday" matches one covering three and a half days. Lag-144 seasonality is real but largely redundant when lag-1 ACF = 0.987: recent observations already imply the daily cycle at a ten-minute horizon, though it remains decisive for SARIMA, which must encode it explicitly. Selected **levels = 4** (RF = 61, 5,601 parameters) for parsimony over levels = 7 (10,305 parameters, +84% params for 0.7 MAE).
+Validation MAE values are 103.17, 109.61, 104.55, and 102.47. The middle depth is worst, so run-to-run noise is at least about 5 MAE units. The gap between best and worst is only 0.70, so there is no clear receptive-field effect at this horizon. Recent values already carry most of the signal when lag-1 ACF is 0.987. The selected model is **4 levels** (5,601 parameters), not the deepest one.
 
 ### 6.2 Final test-week results
 
-Configurations: SARIMA(1,0,1)(0,1,0)[144]; LSTM 64 hidden, 144 window; TCN 16 channels, 4 levels — unchanged across areas.
+Final settings: SARIMA(1,0,1)(0,1,0)[144]; LSTM with 64 units and lookback 144; TCN with 16 channels and 4 levels. The same settings are used on all three areas.
 
-**Square 5161:**
+**Square 5161**
 
 {{table:metrics_square_5161}}
 
-**Square 5059:**
+**Square 5059**
 
 {{table:metrics_square_5059}}
 
-**Square 5259:**
+**Square 5259**
 
 {{table:metrics_square_5259}}
 
-Seasonal naive is catastrophically weak (MAE 338.6, 171.7, 470.3 vs persistence 92.8, 81.5, 76.0), so MASE ≪ 1 for all models. **Persistence is the binding baseline** (lag-1 ACF 0.987):
+Seasonal naive is far worse than persistence (MAE 338.6, 171.7, and 470.3 versus 92.8, 81.5, and 76.0). Persistence is the baseline that matters:
 
 {{table:relative_to_persistence}}
 
-**SARIMA** is 7.6–16.4% worse than persistence on all areas. This is not a tuning failure: the order search tested eight configurations bounded by the PACF and flattened before the search boundary. Seasonal differencing at lag 144 makes the series stationary but discards the short-range information that dominates at a ten-minute horizon. **TCN** improves 14.8–15.5% with spread **0.007** across areas differing fivefold in level and inverting weekend behaviour (5161 weekend 1.38× weekday; 5259 0.43×). **LSTM** mean ratio 0.905 but spread 0.179 (25× TCN's): best on 5059 (67.2 vs TCN 68.9), ties persistence on 5161 (93.1 vs 92.8). LSTM on 5161 was the only final run hitting its wall-clock budget (epoch 22/40); its best epoch matched tuning, but convergence cannot be asserted for that area alone.
+SARIMA is 7.6 to 16.4% worse than persistence on all three areas. The TCN improves by about 15% with almost no spread across areas (0.007). The LSTM averages close to the TCN but is much less stable (spread 0.179). It wins on square 5059 and only ties persistence on square 5161. That LSTM run was the only final fit stopped by the time budget.
 
 #### Forecast plots
 
 ![](figures/forecast_sq5161_SARIMA.png)
 ![](figures/forecast_sq5161_LSTM.png)
 ![](figures/forecast_sq5161_TCN.png)
-*Figure 6. Square 5161, 16–22 December: SARIMA, LSTM, TCN forecasts with residuals.*
+*Figure 6. Square 5161, 16 to 22 December: SARIMA, LSTM, and TCN.*
 
 ![](figures/forecast_sq5059_SARIMA.png)
 ![](figures/forecast_sq5059_LSTM.png)
@@ -274,53 +274,53 @@ Seasonal naive is catastrophically weak (MAE 338.6, 171.7, 470.3 vs persistence 
 ![](figures/forecast_sq5259_TCN.png)
 *Figure 8. Square 5259, same week.*
 
-All models track the diurnal cycle (R² 0.981–0.993); residuals expand at daily peaks and weekends. RMSE ÷ MAE = 1.44–1.58 (models) vs 1.83 (seasonal naive on 5161, 5259) — error is peak-concentrated.
+All three models follow the daily cycle (R2 between 0.981 and 0.993). Residuals grow at peaks and weekends. RMSE/MAE is about 1.44 to 1.58 for the models, versus 1.83 for seasonal naive on squares 5161 and 5259.
 
 ### 6.3 Computational cost
 
 {{table:timing|noindex}}
 
-Hardware: i5-6300U, 7.9 GB RAM, no GPU, 2 PyTorch threads (`results/hardware.json`).
+Hardware details are in `results/hardware.json` (i5-6300U, 7.9 GB RAM, no GPU, two PyTorch threads).
 
-**Timing caveat:** runs occurred on a loaded laptop (~466 MB free during evaluation). Same LSTM config: ~10.5 s/epoch (tuning) vs ~88 s/epoch (final) — eightfold difference with unchanged architecture. Order-of-magnitude comparisons only.
+These times are noisy. Free RAM fell to about 466 MB during the final runs, and the same LSTM setup cost about 10.5 seconds per epoch in tuning but about 88 seconds per epoch on square 5161 later. Only rough order-of-magnitude comparisons are trusted.
 
-Nonetheless: **SARIMA** fits in 0.74–1.67 s (3 parameters) but loses to persistence. **TCN** mean training 644 s vs LSTM 1,005 s, with 5,601 vs 17,217 parameters — better accuracy and lower cost. **Inference** ≤ 0.68 ms/step — not operationally binding. Wall-clock budgets make strict reproducibility impossible; predictions were archived to `results/predictions_square_*.csv` for regeneration without retraining (post-hoc; reported numbers are from the original run).
+Even so, SARIMA fits in about one second and still loses to persistence. The TCN trains faster than the LSTM and uses fewer parameters (5,601 versus 17,217) while scoring better on average. Inference is under one millisecond per step for every model.
 
 ### 6.4 Failure analysis
 
 ![](figures/error_by_hour_sq5161.png)
-*Figure 9. Square 5161: MAE by hour with mean activity shaded. Models differ only at peak (13:00–16:00).*
+*Figure 9. Square 5161: MAE by hour of day, with mean activity shaded.*
 
-Overnight (00:00–06:00) all models ~15–45 MAE; at peak SARIMA ~258, LSTM ~256, TCN ~163. TCN's advantage is entirely at the daily peak.
+At night all models look similar. Around the afternoon peak, SARIMA and LSTM rise to about 250 MAE while the TCN stays near 160. Most of the TCN gain comes from peak hours.
 
-**Worst six-hour windows** (all areas: midday–evening peak):
+Worst six-hour windows (always a midday to evening peak):
 
 | Area | Worst window | SARIMA | LSTM | TCN |
 |---|---|---|---|---|
-| 5161 | Sat 21 Dec, 13:10–19:00 | 304.0 (2.81×) | 201.0 (2.16×) | 148.2 (1.89×) |
-| 5059 | Tue 17 Dec, 12:20–18:10 | 158.6 (1.78×) | 173.7 (2.58×) | 164.8 (2.39×) |
-| 5259 | Mon 16 Dec, 12:20–18:10 | 221.7 (2.71×) | 131.0 (1.95×) | 118.6 (1.83×) |
+| 5161 | Sat 21 Dec, 13:10 to 19:00 | 304.0 (2.81x) | 201.0 (2.16x) | 148.2 (1.89x) |
+| 5059 | Tue 17 Dec, 12:20 to 18:10 | 158.6 (1.78x) | 173.7 (2.58x) | 164.8 (2.39x) |
+| 5259 | Mon 16 Dec, 12:20 to 18:10 | 221.7 (2.71x) | 131.0 (1.95x) | 118.6 (1.83x) |
 
 ![](figures/failure_window_sq5161.png)
-*Figure 10. Square 5161 worst window: Saturday 21 December, 13:10–19:00 — highest-activity period after 48% Fri→Sat jump.*
+*Figure 10. Square 5161 worst window: Saturday 21 December afternoon, after a 48% rise from Friday's peak.*
 
-Daily peaks Mon–Fri: 3,057–3,877; Sat 5,238; Sun 5,496. This is **not** beyond training range (training Saturday peak 8,044; Sat 21 Dec is lower than several training Saturdays). STL trend *falls* after 21 December. The failure is the **day-of-week transition**: Friday peak 3,530 → Saturday 5,238 (+48%). No model receives day-of-week input.
+Weekday peaks that week sit between about 3,057 and 3,877. Saturday reaches 5,238 and Sunday 5,496. This is not outside the training range: the training period includes a Saturday peak of 8,044. The hard part is the Friday to Saturday jump (3,530 to 5,238, +48%) with no day-of-week feature.
 
-- **SARIMA:** bias −207 — anchored to yesterday (Friday), systematically under-predicts.
-- **LSTM:** bias +112 — tracks ascent but overshoots descent.
-- **TCN:** bias +15 — lowest window error, largely unbiased.
+- SARIMA bias about -207 (under-predicts, locked to yesterday).
+- LSTM bias about +112 (overshoots the descent).
+- TCN bias about +15 (smallest and nearly unbiased).
 
 ### 6.5 Summary
 
 | | SARIMA | LSTM | TCN |
 |---|---|---|---|
 | Mean ratio to persistence | 1.112 | 0.905 | **0.848** |
-| Cross-area spread | 0.088 | 0.179 | **0.007** |
+| Spread across areas | 0.088 | 0.179 | **0.007** |
 | Beats persistence | 0/3 | 2/3 | **3/3** |
 | Parameters | **3** | 17,217 | 5,601 |
 | Mean train time | **1.2 s** | 1,005 s | 644 s |
 
-The TCN is preferred on accuracy, cross-area stability, and efficiency. Results align with literature once horizon is considered: Zhang and Patras [2] report larger gains at long horizons; Makridakis *et al.* [21] and Wang *et al.* [6] find simple methods competitive; Zeng *et al.* [29] show persistence strength depends on horizon. Zhang *et al.* [28] use a 3.19M-parameter spatio-temporal hybrid against neural baselines only — complementary to this univariate persistence comparison.
+The TCN is the best overall choice here: more accurate on average, more stable across areas, and cheaper than the LSTM. That fits prior work once horizon is taken into account [2], [6], [21], [29]. Spatio-temporal hybrids such as [28] answer a different question, because they use the full grid and neural baselines only.
 
 ---
 
@@ -328,33 +328,31 @@ The TCN is preferred on accuracy, cross-area stability, and efficiency. Results 
 
 ### 7.1 Findings
 
-We compared SARIMA, LSTM, and TCN for one-step-ahead Internet traffic forecasting in three Milan grid areas (16–22 December 2013).
-
-1. **Baseline choice matters.** MASE ≪ 1 vs seasonal naive masks that persistence is the binding benchmark; SARIMA is 7.6–16.4% worse than persistence everywhere.
-2. **TCN is most reliable.** 14.8–15.5% gain over persistence, spread 0.007, despite unchanged transfer across areas with inverted weekend behaviour. LSTM mean gain similar but spread 25× larger.
-3. **Receptive field irrelevant at one step.** Matched-epoch study: no effect from RF 61–509; daily seasonality is decisive for SARIMA, redundant for networks conditioned on recent history.
-4. **Failures are calendar/design-driven.** Errors concentrate at peaks; worst window is Fri→Sat transition (+48%), not an unprecedented pre-Christmas peak. Missing day-of-week input explains the largest miss.
+1. **Which baseline you use changes the story.** MASE against seasonal naive looks excellent for every model, but persistence is harder to beat, and SARIMA loses to it on all three areas.
+2. **The TCN is the most reliable of the three.** It gains about 15% on persistence with almost no spread across areas. The LSTM is competitive on average but less stable.
+3. **Receptive field did not matter at one step.** With matched epochs, depths from RF 61 to 509 were indistinguishable within noise. Daily seasonality still matters for SARIMA.
+4. **The largest failure is a day-of-week change.** Errors concentrate at peaks. The worst case is the Friday to Saturday rise, not a Christmas peak beyond the training range.
 
 ### 7.2 Limitations
 
-Single seed per config; wall-clock budgets (one truncated LSTM final run); contaminated timing measurements; three adjacent high-traffic areas only; SARIMA restricted to P = Q = 0; univariate inputs; symmetric metrics [8] that under-weight SARIMA's peak under-prediction.
+One seed per neural run; wall-clock stopping (including one truncated LSTM fit); noisy timing on a busy laptop; only three busy central areas; SARIMA without seasonal AR/MA terms; univariate inputs only; symmetric metrics [8].
 
 ### 7.3 Future work
 
-1. **Day-of-week / holiday features** — targets the observed +48% transition failure directly.
-2. **Multi-seed repeats** on an unloaded machine.
-3. **Horizon sweep** (1, 6, 36, 144 steps) to test when RF and seasonality matter [2].
-4. **Areas across the traffic distribution** (median, bottom decile).
-5. **Spatio-temporal models** exploiting spatial decay [4], [15] — requires re-ingesting discarded channels/dimensions.
-6. **Asymmetric cost training** following DeepCog [8].
+1. Add day-of-week and holiday features.
+2. Repeat key runs with several seeds on an unloaded machine.
+3. Sweep horizons (1, 6, 36, 144 steps) [2].
+4. Test quieter areas as well as busy ones.
+5. Try spatial models [4], [15] if more channels are re-ingested.
+6. Train with an asymmetric cost [8].
 
 ---
 
 ## 8. Academic Integrity
 
-This is an individual submission. Library documentation, textbooks, and published papers listed in Section 9 were used as learning resources while developing the methods. Occasional use of a programming assistant was limited to clarifying language or library usage where needed; it was not used as a substitute for understanding the problem, designing the experiments, interpreting the results, or writing the scientific argument of this report.
+This is an individual submission. Documentation, textbooks, and the papers in Section 9 were used while learning the methods. Occasional help from a programming assistant was limited to clarifying language or library usage. It was not used in place of understanding the problem, designing the experiments, reading the results, or writing the argument of this report.
 
-All numerical results in this report were produced by the code and experiments in the accompanying repository [33]. I take responsibility for the work submitted under my name and can explain and justify the data handling, modelling choices, methodology, results, and conclusions.
+All numbers come from the code and experiments in the project repository [33]. I am responsible for the work under my name and can explain the data handling, model choices, methods, results, and conclusions.
 
 ---
 
@@ -397,8 +395,8 @@ pp. 1827–1832, doi: 10.1109/PIMRC.2018.8581000.
 
 [8] D. Bega, M. Gramaglia, M. Fiore, A. Banchs, and X. Costa-Pérez, "DeepCog:
 Cognitive network management in sliced 5G networks with deep learning," in *Proc.
-IEEE INFOCOM 2019 — IEEE Conf. Computer Communications*, Paris, France, Apr. 2019,
-pp. 280–288, doi: 10.1109/INFOCOM.2019.8737488.
+IEEE INFOCOM 2019*, Paris, France, Apr. 2019, pp. 280–288,
+doi: 10.1109/INFOCOM.2019.8737488.
 
 [9] C. Zhang, P. Patras, and H. Haddadi, "Deep learning in mobile and wireless
 networking: A survey," *IEEE Communications Surveys & Tutorials*, vol. 21, no. 3,
@@ -466,7 +464,7 @@ networks (second edition)," GSMA Intelligence, London, U.K., Feb. 2023. (Industr
 report; not peer-reviewed.)
 
 [24] L. M. P. Larsen, H. L. Christiansen, S. Ruepp, and M. S. Berger, "Toward
-greener 5G and beyond radio access networks—A survey," *IEEE Open Journal of the
+greener 5G and beyond radio access networks: A survey," *IEEE Open Journal of the
 Communications Society*, vol. 4, pp. 768–797, 2023,
 doi: 10.1109/OJCOMS.2023.3257889.
 

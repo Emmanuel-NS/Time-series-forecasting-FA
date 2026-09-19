@@ -99,8 +99,8 @@ aggregation.
 Requires Python 3.10+ (developed on 3.12).
 
 ```bash
-git clone <your-repo-url>
-cd <repo>
+git clone https://github.com/Emmanuel-NS/Time-series-forecasting-FA.git
+cd Time-series-forecasting-FA
 
 python -m venv .venv
 # Windows

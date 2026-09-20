@@ -86,7 +86,7 @@ blockquote {
   border-left: 2.4pt solid #6b8bb5; font-size: 10.5pt;
 }
 .caption-label { font-weight: 600; }
-a { color: #1d4e89; text-decoration: none; }
+a { color: #1d4e89; text-decoration: underline; }
 hr { border: none; border-top: 0.5pt solid #ccd4de; margin: 10pt 0; }
 .tight-table table { font-size: 8.5pt; }
 """
@@ -173,6 +173,38 @@ def _wrap_figures(html: str) -> str:
     return pattern.sub(repl, html)
 
 
+def _autolink_urls(html: str) -> str:
+    """Turn bare http(s) URLs into ``<a href>`` so they survive into the PDF."""
+
+    url_re = re.compile(r"https?://[^\s<>\"']+")
+
+    def linkify_text(text: str) -> str:
+        def repl(match: re.Match) -> str:
+            url = match.group(0)
+            trailing = ""
+            while url and url[-1] in ".,;:)]":
+                trailing = url[-1] + trailing
+                url = url[:-1]
+            if not url:
+                return match.group(0)
+            return f'<a href="{url}">{url}</a>{trailing}'
+
+        return url_re.sub(repl, text)
+
+    # Leave existing anchors untouched; only linkify text outside them.
+    parts = re.split(r"(<a\b[^>]*>.*?</a>)", html, flags=re.IGNORECASE | re.DOTALL)
+    out: list[str] = []
+    for part in parts:
+        if part.lower().startswith("<a"):
+            out.append(part)
+        else:
+            # Also skip URLs that already appear inside tag attributes.
+            chunks = re.split(r"(<[^>]+>)", part)
+            for i, chunk in enumerate(chunks):
+                out.append(chunk if i % 2 == 1 else linkify_text(chunk))
+    return "".join(out)
+
+
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
@@ -208,6 +240,7 @@ def build(source: Path | None = None, pdf: Path | None = None) -> Path:
         extensions=["tables", "fenced_code", "attr_list", "footnotes", "md_in_html", "sane_lists"],
     )
     body = _wrap_figures(body)
+    body = _autolink_urls(body)
     body = _embed_images(body)
 
     html = (

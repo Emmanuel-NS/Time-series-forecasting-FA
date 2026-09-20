@@ -3,8 +3,8 @@
 **Emmanuel NSABAGASANI**, African Leadership University  
 Formative Assignment 1, September 2026
 
-**GitHub repository:** https://github.com/Emmanuel-NS/Time-series-forecasting-FA  
-**Demo video:** https://youtu.be/EzIG6sXS4_c
+**GitHub repository:** [https://github.com/Emmanuel-NS/Time-series-forecasting-FA](https://github.com/Emmanuel-NS/Time-series-forecasting-FA)  
+**Demo video:** [https://youtu.be/EzIG6sXS4_c](https://youtu.be/EzIG6sXS4_c)
 
 ---
 
@@ -509,6 +509,7 @@ https://arxiv.org/abs/1912.01703
 
 ### Project artefacts
 
-[33] Source code repository: https://github.com/Emmanuel-NS/Time-series-forecasting-FA
+[33] Source code repository:
+[https://github.com/Emmanuel-NS/Time-series-forecasting-FA](https://github.com/Emmanuel-NS/Time-series-forecasting-FA)
 
-[34] Video presentation: https://youtu.be/EzIG6sXS4_c
+[34] Video presentation: [https://youtu.be/EzIG6sXS4_c](https://youtu.be/EzIG6sXS4_c)

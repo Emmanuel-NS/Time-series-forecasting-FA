@@ -3,6 +3,9 @@
 **Emmanuel NSABAGASANI**, African Leadership University  
 Formative Assignment 1, September 2026
 
+**GitHub repository:** https://github.com/Emmanuel-NS/Time-series-forecasting-FA  
+**Demo video:** https://youtu.be/EzIG6sXS4_c
+
 ---
 
 ## Abstract

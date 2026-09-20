@@ -508,4 +508,4 @@ https://arxiv.org/abs/1912.01703
 
 [33] Source code repository: https://github.com/Emmanuel-NS/Time-series-forecasting-FA
 
-[34] Video presentation: *[insert video URL before submission]*
+[34] Video presentation: https://youtu.be/EzIG6sXS4_c

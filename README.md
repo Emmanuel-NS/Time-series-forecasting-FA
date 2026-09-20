@@ -7,9 +7,6 @@ characteristics.
 
 **Repository:** https://github.com/Emmanuel-NS/Time-series-forecasting-FA
 
-> **Still to do before submission:** record the video and add its URL — see
-> [`report/SUBMIT.md`](report/SUBMIT.md).
-
 
 > **Research question.** How do different sequential models compare for
 > one-step-ahead mobile network traffic forecasting, and how does their
@@ -350,8 +347,6 @@ This is an individual project. Documentation and published references were used
 as learning resources. Any programming-assistant use was limited to clarifying
 language or library usage, not to substituting for understanding or ownership of
 the work. Full statement: Section 8 of the report.
-
-Submission steps still needing the author (video + URL): `report/SUBMIT.md`.
 
 
 ---
